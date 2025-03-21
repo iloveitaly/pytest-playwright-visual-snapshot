@@ -16,10 +16,11 @@ env:
 jobs:
   # if you want to test across multiple python versions
   matrix-test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.13", "3.12", "3.11", "3.10", "3.9"]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
