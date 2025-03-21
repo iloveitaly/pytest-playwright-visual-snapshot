@@ -9,9 +9,8 @@ dependencies = []
 authors = [{ name = "Michael Bianco", email = "mike@mikebian.co" }]
 urls = { "Repository" = "https://github.com/iloveitaly/pytest-playwright-visual-snapshot" }
 
-# additional packaging information: https://packaging.python.org/en/latest/specifications/core-metadata/#license
-[project.scripts]
-pytest-playwright-visual-snapshot = "pytest_playwright_visual_snapshot:main"
+[project.entry-points.pytest11]
+playwright_visual_snapshot = "playwright_visual_snapshot.plugin"
 
 # https://github.com/astral-sh/uv/issues/5200
 [tool.uv]
