@@ -25,6 +25,7 @@ jobs:
       - uses: jdx/mise-action@v2
       - run: mise use python@${{ matrix.python-version }}
       - run: uv sync
+      - run: uv run playwright install
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv run pytest
 
