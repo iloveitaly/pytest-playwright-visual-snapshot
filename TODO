@@ -1,0 +1,4 @@
+- [ ] should do a relative path comparison with pytest root and configured snapshot directory
+- [ ] locator list should be a configuration option
+- [ ] gh download action
+- [ ] explain ci approach
