@@ -114,6 +114,8 @@ def assert_snapshot(
 
     # for automatically naming multiple assertions
     counter = 0
+    # Collection to store failures
+    failures = []
 
     def compare(
         img_or_page: Union[bytes, Any],
@@ -161,8 +163,7 @@ def assert_snapshot(
         # test file without the extension
         test_file_name_without_extension = current_test_file_path.stem
 
-        # TODO this doesn't work with nested flders and custom paths
-        # created a nested folder to store screenshots: snapshot/test_file_name/test_name/
+        # Created a nested folder to store screenshots: snapshot/test_file_name/test_name/
         test_file_snapshot_dir = (
             snapshots_path / test_file_name_without_extension / test_name_without_params
         )
@@ -180,20 +181,22 @@ def assert_snapshot(
         if failure_results_dir.exists():
             shutil.rmtree(failure_results_dir)
 
-        # increment counter before any pytest.fail
+        # increment counter before any failures are recorded
         counter += 1
 
         if update_snapshot:
             screenshot_file.write_bytes(img)
-            pytest.fail(
+            failures.append(
                 f"[playwright-visual-snapshot] Snapshots updated. Please review images. {screenshot_file}"
             )
+            return
 
         if not screenshot_file.exists():
             screenshot_file.write_bytes(img)
-            pytest.fail(
+            failures.append(
                 f"[playwright-visual-snapshot] New snapshot(s) created. Please review images. {screenshot_file}"
             )
+            return
 
         img_a = Image.open(BytesIO(img))
         img_b = Image.open(screenshot_file)
@@ -212,10 +215,24 @@ def assert_snapshot(
         img_b.save(f"{failure_results_dir}/expected_{name}")
 
         # on ci, update the existing screenshots in place so we can download them
-        # otherwise, it's hard to get linux-box screenshots without a linux box!
         if is_ci_environment():
             screenshot_file.write_bytes(img)
 
-        pytest.fail("[playwright-visual-snapshot] Snapshots DO NOT match!")
+        # Still honor fail_fast if specifically requested
+        if fail_fast:
+            pytest.fail(
+                "[playwright-visual-snapshot] Snapshots DO NOT match! (fail_fast=True)"
+            )
+
+        failures.append(
+            f"[playwright-visual-snapshot] Snapshot '{name}' does not match!"
+        )
+
+    # Register finalizer to report all failures at the end of the test
+    def finalize():
+        if failures:
+            pytest.fail("\n".join(failures))
+
+    request.addfinalizer(finalize)
 
     return compare
