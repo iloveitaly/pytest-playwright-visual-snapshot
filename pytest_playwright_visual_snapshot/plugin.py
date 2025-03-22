@@ -56,12 +56,6 @@ def pytest_addoption(parser: Parser) -> None:
         type="string",
     )
 
-    parser.addini(
-        "playwright_visual_failure_directory",
-        "Directory for storing visual failure images",
-        type="string",
-    )
-
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
