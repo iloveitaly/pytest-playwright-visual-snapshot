@@ -11,6 +11,7 @@ permissions:
 env:
   PIP_DEFAULT_TIMEOUT: 60
   PIP_RETRIES: 5
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   matrix-test:
