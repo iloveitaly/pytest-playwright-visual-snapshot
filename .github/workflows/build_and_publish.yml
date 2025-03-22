@@ -24,7 +24,7 @@ jobs:
       - uses: jdx/mise-action@v2
       - run: mise use python@${{ matrix.python-version }}
       - run: uv sync
-      - uses: iloveitaly/direnv-export-and-mask@master
+      - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - name: Check CLI
         run: uv run ${{ github.event.repository.name }} --help
       - run: uv run pytest
