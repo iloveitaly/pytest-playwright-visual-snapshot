@@ -20,7 +20,7 @@ playwright_visual_snapshot = "pytest_playwright_visual_snapshot.plugin"
 [tool.uv]
 package = true
 
-[tool.pytest]
+[tool.pytest.ini_options]
 addopts = "-p no:playwright --runpytest subprocess -vv"
 
 [build-system]
@@ -28,4 +28,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["pytest>=8.3.3"]
+dev = ["pytest>=8.3.3", "requests>=2.32.3"]

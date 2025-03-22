@@ -375,6 +375,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -385,7 +386,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.3.3" }]
+dev = [
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "requests", specifier = ">=2.32.3" },
+]
 
 [[package]]
 name = "python-slugify"
