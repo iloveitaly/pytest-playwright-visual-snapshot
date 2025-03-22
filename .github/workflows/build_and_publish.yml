@@ -28,7 +28,7 @@ jobs:
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: |
-          sudo uv run playwright install-deps
+          uv run playwright install-deps
           uv run playwright install
       - run: uv run pytest
 
