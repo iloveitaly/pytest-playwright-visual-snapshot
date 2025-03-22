@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "pytest-playwright-visual-snapshot is a pytest plugin that provides visual regression testing for Playwright."
 keywords = ["pytest", "playwright", "visual", "regression", "testing"]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pillow>=11.1.0",
     "pixelmatch>=0.3.0",
