@@ -23,7 +23,7 @@ def test_filepath_exists(browser_name: str, testdir: pytest.Testdir) -> None:
         / "__snapshots__"
         / "test_filepath_exists"
         / "test_snapshot"
-        / f"test_snapshot[{browser_name}][{sys.platform}].png"
+        / f"test_snapshot[{browser_name}][{sys.platform}].jpeg"
     ).resolve()
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(failed=1)
@@ -67,7 +67,7 @@ def test_custom_image_name_generated(
         """
         def test_snapshot(page, assert_snapshot):
             page.goto("https://example.com")
-            assert_snapshot(page.screenshot(), name="test.png")
+            assert_snapshot(page.screenshot(), name="test.jpeg")
         """
     )
     filepath = (
@@ -75,7 +75,7 @@ def test_custom_image_name_generated(
         / "__snapshots__"
         / "test_custom_image_name_generated"
         / "test_snapshot"
-        / "test.png"
+        / "test.jpeg"
     ).resolve()
     result = testdir.runpytest("--browser", browser_name)
 
@@ -104,7 +104,7 @@ def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
         / "__snapshots__"
         / "test_compare_fail"
         / "test_snapshot"
-        / f"test_snapshot[{browser_name}][{sys.platform}].png"
+        / f"test_snapshot[{browser_name}][{sys.platform}].jpeg"
     ).resolve()
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(failed=1)
@@ -149,7 +149,7 @@ def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> N
         / "__snapshots__"
         / "test_compare_with_fail_fast"
         / "test_snapshot"
-        / f"test_snapshot[{browser_name}][{sys.platform}].png"
+        / f"test_snapshot[{browser_name}][{sys.platform}].jpeg"
     ).resolve()
     result = testdir.runpytest("--browser", browser_name, "--update-snapshots")
     result.assert_outcomes(failed=1)
@@ -188,7 +188,7 @@ def test_actual_expected_diff_images_generated(
         / "__snapshots__"
         / "test_actual_expected_diff_images_generated"
         / "test_snapshot"
-        / f"test_snapshot[{browser_name}][{sys.platform}].png"
+        / f"test_snapshot[{browser_name}][{sys.platform}].jpeg"
     ).resolve()
     result = testdir.runpytest("--browser", browser_name, "--update-snapshots")
     result.assert_outcomes(failed=1)
@@ -210,13 +210,14 @@ def test_actual_expected_diff_images_generated(
         / f"test_snapshot[{browser_name}][{sys.platform}]"
     )
     actual_img = (
-        test_results_dir / f"actual_test_snapshot[{browser_name}][{sys.platform}].png"
+        test_results_dir / f"actual_test_snapshot[{browser_name}][{sys.platform}].jpeg"
     )
     expected_img = (
-        test_results_dir / f"expected_test_snapshot[{browser_name}][{sys.platform}].png"
+        test_results_dir
+        / f"expected_test_snapshot[{browser_name}][{sys.platform}].jpeg"
     )
     diff_img = (
-        test_results_dir / f"diff_test_snapshot[{browser_name}][{sys.platform}].png"
+        test_results_dir / f"diff_test_snapshot[{browser_name}][{sys.platform}].jpeg"
     )
     assert actual_img.exists(), f"Actual image does not exist: {actual_img}"
     assert expected_img.exists(), f"Expected image does not exist: {expected_img}"
