@@ -81,14 +81,14 @@ def assert_snapshot(
 ) -> Callable:
     test_function_name = request.node.name
     test_name_without_params = test_name_without_parameters(test_function_name)
-    test_name = f"{test_function_name}[{browser_name}][{str(sys.platform)}]"
+    test_name = f"{test_function_name}[{str(sys.platform)}]"
 
     current_test_file_path = Path(request.node.fspath)
     test_files_directory = current_test_file_path.parent.resolve()
 
     snapshots_path = Path(
         t.cast(str, _get_option(pytestconfig, "playwright_visual_snapshots_path"))
-        or (test_files_directory / "snapshots")
+        or (test_files_directory / "__snapshots__")
     )
     snapshot_failures_path = Path(
         t.cast(
