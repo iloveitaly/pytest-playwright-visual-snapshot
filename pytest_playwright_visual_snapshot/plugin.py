@@ -5,7 +5,7 @@ import sys
 import typing as t
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Union
+from typing import Any, Callable, List, Union
 
 import pytest
 from PIL import Image
@@ -56,6 +56,13 @@ def pytest_addoption(parser: Parser) -> None:
         type="string",
     )
 
+    parser.addini(
+        "playwright_visual_snapshot_masks",
+        "List of CSS selectors to mask during visual comparison",
+        type="linelist",
+        default=[],
+    )
+
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
@@ -67,6 +74,13 @@ def pytest_addoption(parser: Parser) -> None:
 
 def test_name_without_parameters(test_name: str) -> str:
     return test_name.split("[", 1)[0]
+
+
+def _create_locators_from_selectors(page: SyncPage, selectors: List[str]):
+    """
+    Convert a list of CSS selector strings to locator objects
+    """
+    return [page.locator(selector) for selector in selectors]
 
 
 @pytest.fixture
@@ -95,6 +109,7 @@ def assert_snapshot(
         t.cast(str, _get_option(pytestconfig, "playwright_visual_snapshot_threshold"))
     )
 
+    mask_selectors = _get_option(pytestconfig, "playwright_visual_snapshot_masks") or []
     update_snapshot = _get_option(pytestconfig, "update_snapshots")
 
     # for automatically naming multiple assertions
@@ -106,14 +121,15 @@ def assert_snapshot(
         threshold: float | None = None,
         name=None,
         fail_fast=False,
+        mask_elements: List[str] | None = None,
     ) -> None:
         nonlocal counter
 
         if not name:
             if counter > 0:
-                name = f"{test_name}_{counter}.png"
+                name = f"{test_name}_{counter}.jpeg"
             else:
-                name = f"{test_name}.png"
+                name = f"{test_name}.jpeg"
 
         # Use global threshold if no local threshold provided
         if not threshold:
@@ -121,12 +137,23 @@ def assert_snapshot(
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, SyncPage):
+            # Combine configured mask elements with any provided in the function call
+            all_mask_selectors = list(mask_selectors)
+            if mask_elements:
+                all_mask_selectors.extend(mask_elements)
+
+            # Convert selectors to locators
+            masks = (
+                _create_locators_from_selectors(img_or_page, all_mask_selectors)
+                if all_mask_selectors
+                else []
+            )
+
             img = img_or_page.screenshot(
                 animations="disabled",
                 type="jpeg",
                 quality=100,
-                # TODO replace with param
-                mask=[img_or_page.locator('[data-clerk-component="UserButton"]')],
+                mask=masks,
             )
         else:
             img = img_or_page
