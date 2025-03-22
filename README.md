@@ -50,16 +50,15 @@ After updating, tests will fail and you will need to review images.
 
 In case of a mismatch, `snapshot_tests_failures` folder will be created with `actual_..`, `expected_..` and `diff_..` images generated.
 
+## Configuration
 
-## Change snapshots path
-
-You can change the default path where snapshots are stored by setting `pytest.snapshots_path` and/or
-`pytest.snapshot_failures_path` value in `pytest_configure()` hook in your root `conftest.py`:
+View all configuration options by running `pytest --help`. Here's a quick example:
 
 ```python
-def pytest_configure():
-    pytest.snapshots_path = Path.cwd() / "snapshots"
-    pytest.snapshot_failures_path = Path.cwd() / "snapshot_failures"
+# NOTE this runs on any pytest invocation, even if no tests are run
+def pytest_configure(config: Config):
+  config.option.playwright_visual_snapshots_path = Path("...")
+  config.option.playwright_visual_snapshot_failures_path = Path("...")
 ```
 
 ## API
