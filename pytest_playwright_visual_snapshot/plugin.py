@@ -19,6 +19,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
+
 
 def _get_option(config: Config, key: str):
     try:
@@ -188,14 +190,14 @@ def assert_snapshot(
         if update_snapshot:
             screenshot_file.write_bytes(img)
             failures.append(
-                f"[playwright-visual-snapshot] Snapshots updated. Please review images. {screenshot_file}"
+                f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots updated. Please review images. {screenshot_file}"
             )
             return
 
         if not screenshot_file.exists():
             screenshot_file.write_bytes(img)
             failures.append(
-                f"[playwright-visual-snapshot] New snapshot(s) created. Please review images. {screenshot_file}"
+                f"{SNAPSHOT_MESSAGE_PREFIX} New snapshot(s) created. Please review images. {screenshot_file}"
             )
             return
 
@@ -221,9 +223,9 @@ def assert_snapshot(
 
         # Still honor fail_fast if specifically requested
         if fail_fast:
-            pytest.fail(f"[playwright-visual-snapshot] Snapshots DO NOT match! {name}")
+            pytest.fail(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
 
-        failures.append(f"[playwright-visual-snapshot] Snapshots DO NOT match! {name}")
+        failures.append(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
 
     # Register finalizer to report all failures at the end of the test
     def finalize():
