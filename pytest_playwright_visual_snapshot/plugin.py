@@ -129,9 +129,9 @@ def assert_snapshot(
 
         if not name:
             if counter > 0:
-                name = f"{test_name}_{counter}.jpeg"
+                name = f"{test_name}_{counter}.png"
             else:
-                name = f"{test_name}.jpeg"
+                name = f"{test_name}.png"
 
         # Use global threshold if no local threshold provided
         if not threshold:
@@ -153,9 +153,10 @@ def assert_snapshot(
 
             img = img_or_page.screenshot(
                 animations="disabled",
-                type="jpeg",
-                quality=100,
+                type="png",
                 mask=masks,
+                # TODO only for jpeg
+                # quality=100,
             )
         else:
             img = img_or_page
@@ -220,13 +221,9 @@ def assert_snapshot(
 
         # Still honor fail_fast if specifically requested
         if fail_fast:
-            pytest.fail(
-                "[playwright-visual-snapshot] Snapshots DO NOT match! (fail_fast=True)"
-            )
+            pytest.fail(f"[playwright-visual-snapshot] Snapshots DO NOT match! {name}")
 
-        failures.append(
-            f"[playwright-visual-snapshot] Snapshot '{name}' does not match!"
-        )
+        failures.append(f"[playwright-visual-snapshot] Snapshots DO NOT match! {name}")
 
     # Register finalizer to report all failures at the end of the test
     def finalize():
