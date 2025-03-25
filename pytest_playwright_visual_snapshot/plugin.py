@@ -5,7 +5,7 @@ import sys
 import typing as t
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, TypeVar, Union
 
 import pytest
 from PIL import Image
@@ -21,8 +21,12 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 
+T = TypeVar("T")
 
-def _get_option(config: Config, key: str):
+
+def _get_option(
+    config: Config, key: str, *, cast: t.Callable[[t.Any], T] = str
+) -> T | None:
     try:
         val = config.getoption(key)
     except ValueError:
@@ -31,7 +35,10 @@ def _get_option(config: Config, key: str):
     if val is None:
         val = config.getini(key)
 
-    return val
+    if val is not None:
+        val = cast(val)
+
+    return None
 
 
 def is_ci_environment() -> bool:
@@ -97,19 +104,20 @@ def assert_snapshot(
     test_files_directory = current_test_file_path.parent.resolve()
 
     snapshots_path = Path(
-        t.cast(str, _get_option(pytestconfig, "playwright_visual_snapshots_path"))
+        _get_option(pytestconfig, "playwright_visual_snapshots_path", cast=str)
         or (test_files_directory / "__snapshots__")
     )
     snapshot_failures_path = Path(
-        t.cast(
-            str, _get_option(pytestconfig, "playwright_visual_snapshot_failures_path")
-        )
+        _get_option(pytestconfig, "playwright_visual_snapshot_failures_path", cast=str)
         or (test_files_directory / "snapshot_failures")
     )
 
-    global_snapshot_threshold = float(
-        t.cast(str, _get_option(pytestconfig, "playwright_visual_snapshot_threshold"))
+    # we know this exists because of the default value on ini
+    global_snapshot_threshold = _get_option(
+        pytestconfig, "playwright_visual_snapshot_threshold", cast=str
     )
+    assert global_snapshot_threshold
+    global_snapshot_threshold = float(global_snapshot_threshold)
 
     mask_selectors = _get_option(pytestconfig, "playwright_visual_snapshot_masks") or []
     update_snapshot = _get_option(pytestconfig, "update_snapshots")
