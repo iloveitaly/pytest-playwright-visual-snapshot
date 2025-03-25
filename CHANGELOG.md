@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.1.0...v0.2.0) (2025-03-25)
+
+
+### Features
+
+* add CSS masking for visual snapshots in pytest plugin ([6b62602](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/6b62602750052980fc0d92db1cdbdc7154c05c2c))
+* batch snapshot failure messages in assert_snapshot ([95584b4](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/95584b4ff6be8bd50cb24781d3e61357ca3cec19))
+
+
+### Bug Fixes
+
+* use PNG format for snapshots and update messages ([7e7d783](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/7e7d78312772c547d9d98c0833421ea6ef47caf6))
+
+
+### Documentation
+
+* update image format references to PNG ([edbed4f](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/edbed4f187023c530edefcd9a6067eaa79f8ca8b))
+* update README for jpeg snapshots and masking elements ([7f7b415](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/7f7b41502bbdb6b733af891ab5c46dc329fc7762))
+* update README for visual regression testing ([32b4550](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/32b4550a59408b62af38b61d13a3cbc8cf8c64fd))
+
 ## 0.1.0 (2025-03-22)
 
 
