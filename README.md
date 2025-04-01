@@ -94,6 +94,18 @@ def test_with_custom_masks(page, assert_snapshot):
     assert_snapshot(page, mask_elements=[".user-avatar", "#timestamp"])
 ```
 
+### GitHub Actions Script
+
+```shell
+failed_run_id=$(gh run list --status=failure --workflow=workflow_name.yml --json databaseId --jq '.[0].databaseId')
+PLAYWRIGHT_RESULT_DIRECTORY=
+
+rm -rf ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id} && \
+mkdir -p ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id} && \
+gh run --dir ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id} download $failed_run_id && \
+cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_VISUAL_SNAPSHOT_DIRECTORY}/ ${PLAYWRIGHT_VISUAL_SNAPSHOT_DIRECTORY}/
+```
+
 ## API
 
 - `threshold` - sets the threshold for the comparison of the screenshots:`0` to `1`. Default is `0.1`
