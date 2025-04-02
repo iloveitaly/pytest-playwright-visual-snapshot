@@ -2,3 +2,4 @@
 - [ ] gh download action
 - [ ] explain ci approach
 - [ ] allow png vs png to be configured
+- [ ] should append to default mask list when passed via kwargs
