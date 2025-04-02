@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.0...v0.2.1) (2025-04-02)
+
+
+### Documentation
+
+* update todo ([8ca78cb](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/8ca78cbfb88ea43cd6256fb32f75d1b59e3b0c60))
+
 ## [0.2.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.1.0...v0.2.0) (2025-03-25)
 
 
