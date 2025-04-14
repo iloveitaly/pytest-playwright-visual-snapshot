@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.0...v0.2.1) (2025-04-14)
+
+
+### Bug Fixes
+
+* remove failures at the beginning of the pytest run ([9361cda](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/9361cda1cbf8b7faa7842eaa9b5ef8dc192e8527))
+
+
+### Documentation
+
+* add GitHub Actions script for snapshot management ([fa33c51](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/fa33c51b9d699fa4608763b7b1dc90a22e382cb7))
+* update todo ([8ca78cb](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/8ca78cbfb88ea43cd6256fb32f75d1b59e3b0c60))
+
 ## [0.2.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.1.0...v0.2.0) (2025-03-25)
 
 
