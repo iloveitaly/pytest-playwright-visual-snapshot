@@ -25,7 +25,7 @@ T = TypeVar("T")
 
 
 def _get_option(
-    config: Config, key: str, *, cast: t.Callable[[t.Any], T] = str
+    config: Config, key: str, *, cast: t.Callable[[t.Any], T] | None = str
 ) -> T | None:
     try:
         val = config.getoption(key)
@@ -36,7 +36,10 @@ def _get_option(
         val = config.getini(key)
 
     if val is not None:
-        val = cast(val)
+        if cast:
+            return cast(val)
+
+        return val
 
     return None
 
@@ -92,6 +95,46 @@ def _create_locators_from_selectors(page: SyncPage, selectors: List[str]):
     return [page.locator(selector) for selector in selectors]
 
 
+# Add a data store for computed paths
+class SnapshotPaths:
+    snapshots_path: Path = None
+    failures_path: Path = None
+
+
+@pytest.fixture(scope="function", autouse=True)
+def cleanup_snapshot_failures(pytestconfig: Config):
+    """
+    Clean up snapshot failures directory once at the beginning of test session.
+
+    The snapshot storage path is relative to each test folder, modeling after the React snapshot locations
+    """
+
+    root_dir = Path(pytestconfig.rootdir)
+
+    # Compute paths once
+    SnapshotPaths.snapshots_path = Path(
+        _get_option(pytestconfig, "playwright_visual_snapshots_path", cast=str)
+        or (root_dir / "__snapshots__")
+    )
+
+    SnapshotPaths.failures_path = Path(
+        _get_option(pytestconfig, "playwright_visual_snapshot_failures_path", cast=str)
+        or (root_dir / "snapshot_failures")
+    )
+
+    # Clean up the entire failures directory at session start so past failures don't clutter the result
+    if SnapshotPaths.failures_path.exists():
+        shutil.rmtree(SnapshotPaths.failures_path)
+
+    # Create the directory to ensure it exists
+    SnapshotPaths.failures_path.mkdir(parents=True)
+
+    logger.debug(f"Snapshot failures path: {SnapshotPaths.failures_path.resolve()}")
+    logger.debug(f"Snapshots path: {SnapshotPaths.snapshots_path.resolve()}")
+
+    yield
+
+
 @pytest.fixture
 def assert_snapshot(
     pytestconfig: Config, request: FixtureRequest, browser_name: str
@@ -103,14 +146,12 @@ def assert_snapshot(
     current_test_file_path = Path(request.node.fspath)
     test_files_directory = current_test_file_path.parent.resolve()
 
-    snapshots_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshots_path", cast=str)
-        or (test_files_directory / "__snapshots__")
-    )
-    snapshot_failures_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshot_failures_path", cast=str)
-        or (test_files_directory / "snapshot_failures")
-    )
+    # Use global paths if available, otherwise calculate per test
+    snapshots_path = SnapshotPaths.snapshots_path
+    assert snapshots_path
+
+    snapshot_failures_path = SnapshotPaths.failures_path
+    assert snapshot_failures_path
 
     # we know this exists because of the default value on ini
     global_snapshot_threshold = _get_option(
@@ -119,8 +160,10 @@ def assert_snapshot(
     assert global_snapshot_threshold
     global_snapshot_threshold = float(global_snapshot_threshold)
 
-    mask_selectors = _get_option(pytestconfig, "playwright_visual_snapshot_masks") or []
-    update_snapshot = _get_option(pytestconfig, "update_snapshots")
+    mask_selectors = (
+        _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None) or []
+    )
+    update_snapshot = _get_option(pytestconfig, "update_snapshots", cast=bool)
 
     # for automatically naming multiple assertions
     counter = 0
@@ -187,10 +230,6 @@ def assert_snapshot(
         failure_results_dir = (
             snapshot_failures_path / test_file_name_without_extension / test_name
         )
-
-        # Remove a single test's past run dir with actual, diff and expected images
-        if failure_results_dir.exists():
-            shutil.rmtree(failure_results_dir)
 
         # increment counter before any failures are recorded
         counter += 1
