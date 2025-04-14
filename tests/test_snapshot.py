@@ -1,3 +1,7 @@
+"""
+General tests for the snapshot system
+"""
+
 import sys
 from pathlib import Path
 
@@ -39,6 +43,7 @@ def test_filepath_exists(browser_name: str, testdir: pytest.Testdir) -> None:
         / "test_snapshot"
         / f"test_snapshot[{browser_name}][{sys.platform}].png"
     ).resolve()
+
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert filepath.exists(), assert_file_exists_message(filepath)
@@ -57,14 +62,15 @@ def test_compare_pass(browser_name: str, testdir: pytest.Testdir) -> None:
             assert_snapshot(page.screenshot())
         """
     )
-    result = testdir.runpytest("--browser", browser_name)
-    print(result.outlines)
-    result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
 
+    result = testdir.runpytest("--browser", browser_name)
+
+    result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert (
         "[playwright-visual-snapshot] New snapshot(s) created. Please review images."
         in "".join(result.outlines)
-    ), result.outlines
+    ), "\n".join(result.outlines)
+
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1)  # Second run should pass with no errors
 
@@ -168,10 +174,10 @@ def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> N
         / f"test_snapshot[{browser_name}][{sys.platform}].png"
     ).resolve()
 
-    result = testdir.runpytest("--browser", browser_name, "--update-snapshots")
+    result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert (
-        "[playwright-visual-snapshot] Snapshots updated. Please review images"
+        "[playwright-visual-snapshot] New snapshot(s) created. Please review images."
         in "".join(result.outlines)
     )
     assert filepath.exists()
