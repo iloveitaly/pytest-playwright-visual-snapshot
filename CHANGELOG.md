@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.1...v0.2.2) (2025-06-11)
+
+
+### Documentation
+
+* add note on CI Chrome differences and screenshot usage ([6ee2015](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/6ee2015a679c0adc9ca82010a9a725d4563bf810))
+
 ## [0.2.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.0...v0.2.1) (2025-04-14)
 
 
