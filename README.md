@@ -96,6 +96,8 @@ def test_with_custom_masks(page, assert_snapshot):
 
 ### GitHub Actions Script
 
+The CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
+
 ```shell
 failed_run_id=$(gh run list --status=failure --workflow=workflow_name.yml --json databaseId --jq '.[0].databaseId')
 PLAYWRIGHT_RESULT_DIRECTORY=
