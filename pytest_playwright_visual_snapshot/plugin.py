@@ -101,7 +101,7 @@ class SnapshotPaths:
     failures_path: Path = None
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def cleanup_snapshot_failures(pytestconfig: Config):
     """
     Clean up snapshot failures directory once at the beginning of test session.
