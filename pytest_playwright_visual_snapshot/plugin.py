@@ -127,7 +127,7 @@ def cleanup_snapshot_failures(pytestconfig: Config):
         shutil.rmtree(SnapshotPaths.failures_path)
 
     # Create the directory to ensure it exists
-    SnapshotPaths.failures_path.mkdir(parents=True)
+    SnapshotPaths.failures_path.mkdir(parents=True, exist_ok=True)
 
     logger.debug(f"Snapshot failures path: {SnapshotPaths.failures_path.resolve()}")
     logger.debug(f"Snapshots path: {SnapshotPaths.snapshots_path.resolve()}")
