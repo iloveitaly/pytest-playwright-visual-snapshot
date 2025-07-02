@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.2...v0.2.3) (2025-07-02)
+
+
+### Bug Fixes
+
+* prevent FileExistsError for creating snapshot failures directory when tests run in parallel ([63b9bc7](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/63b9bc7a96d1bd1afdca45e7f1b108f5676728c2))
+
 ## [0.2.2](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.1...v0.2.2) (2025-06-25)
 
 
