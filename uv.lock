@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -383,11 +383,11 @@ wheels = [
 
 [[package]]
 name = "httpdbg"
-version = "1.2.4"
+version = "1.2.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/32/a72a9b891e4daa86beea94deaf823778889b37f60abc3e63e670a96bf8fc/httpdbg-1.2.4.tar.gz", hash = "sha256:904c70145a891e18ed9e952bbfb55fa32a136d9e68b4384cba13edfa53baf899", size = 74337, upload-time = "2025-06-04T19:13:10.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/1a/9b0144d2511e9b9a27236a5326b5ba4284efab632d6bfdfc3fb21e270b53/httpdbg-1.2.6.tar.gz", hash = "sha256:2b9b56239dc1daa1a71cef211331213675e5b5be22750550fef1ff4e8126a758", size = 74810, upload-time = "2025-07-27T15:49:58.764Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/38/42b3ed611643c7b011912ff45bd35433b3a8f55186994fe0e6ff912fef88/httpdbg-1.2.4-py3-none-any.whl", hash = "sha256:f5deab058472ac1acbcdb0af442f511399b5f49674a62508aac8d3f415f12df2", size = 81154, upload-time = "2025-06-04T19:13:08.895Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/af/3fad8c376d18eb36c89604213ed97749efd4bfd5da27a3e6a2c9266df3d9/httpdbg-1.2.6-py3-none-any.whl", hash = "sha256:520a96dda6f66faac3a04e64b8581299278d0766e2fb1d1112388b2cf8a640c5", size = 81705, upload-time = "2025-07-27T15:49:56.89Z" },
 ]
 
 [[package]]
