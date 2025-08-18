@@ -24,7 +24,7 @@ jobs:
         python-version: ["3.13", "3.12", "3.11", "3.10"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jdx/mise-action@v2
       - run: mise use python@${{ matrix.python-version }}
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
@@ -40,7 +40,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: googleapis/release-please-action@v4
         id: release
         with:
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.release-please.outputs.release_created }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jdx/mise-action@v2
       - run: uv sync
       - run: uv build
