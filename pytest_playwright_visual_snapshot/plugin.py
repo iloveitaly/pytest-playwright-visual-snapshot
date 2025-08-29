@@ -251,12 +251,16 @@ def assert_snapshot(
         img_a = Image.open(BytesIO(img))
         img_b = Image.open(screenshot_file)
         img_diff = Image.new("RGBA", img_a.size)
-        mismatch = pixelmatch(
-            img_a, img_b, img_diff, threshold=threshold, fail_fast=fail_fast
-        )
 
-        if mismatch == 0:
-            return
+        try:
+            mismatch = pixelmatch(
+                img_a, img_b, img_diff, threshold=threshold, fail_fast=fail_fast
+            )
+            if mismatch == 0:
+                return
+        except ValueError:
+            # Raised when image sizes differ. Continue generating failure results.
+            pass  
 
         # Create new test_results folder
         failure_results_dir.mkdir(parents=True, exist_ok=True)
