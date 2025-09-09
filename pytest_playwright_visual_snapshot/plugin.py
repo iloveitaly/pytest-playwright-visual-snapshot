@@ -10,7 +10,7 @@ from typing import Any, Callable, List, TypeVar, Union
 import pytest
 from PIL import Image
 from pixelmatch.contrib.PIL import pixelmatch
-from playwright.sync_api import Page as SyncPage
+from playwright.sync_api import Locator, Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 
 logging.basicConfig(
@@ -191,7 +191,7 @@ def assert_snapshot(
             threshold = global_snapshot_threshold
 
         # If page reference is passed, use screenshot
-        if isinstance(img_or_page, SyncPage):
+        if isinstance(img_or_page, (Locator, SyncPage)):
             # Combine configured mask elements with any provided in the function call
             all_mask_selectors = list(mask_selectors)
             if mask_elements:
