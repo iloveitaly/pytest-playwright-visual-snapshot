@@ -315,14 +315,14 @@ wheels = [
 
 [[package]]
 name = "funcy-pipe"
-version = "0.12.0"
+version = "0.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "funcy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bf/0b/f8472a25c530e2b5aec87654508d19c3a4fc1cd93762497d565736ada0a5/funcy_pipe-0.12.0.tar.gz", hash = "sha256:418a200c7fec3caf2ca5204b78c0009e26ee157724d14ef48d210acb49a28655", size = 11759, upload-time = "2025-09-10T16:41:07.861Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/6d/a1cc0b2a776b6a381f71c52b5822cdea85faf392e1bc56816ea442511ae1/funcy_pipe-0.13.0.tar.gz", hash = "sha256:f551810859622dc64ac3741c4f381a546512d3110418ed572c94b4268b4aa91f", size = 12078, upload-time = "2025-09-23T17:47:09.471Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/fc/4d54374a988b8619d950cd32cc1cfd3c07a4af85811fea1b68ecb40fdcd3/funcy_pipe-0.12.0-py3-none-any.whl", hash = "sha256:7afe5e07702352cbcfe4ea60ae13a1540c84e2d14f58b3997fecde13d189db6a", size = 10851, upload-time = "2025-09-10T16:41:07.064Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/e4/7f80b785e1a4808a6a57f96b3d6ef7bc998935ed94250c0017fe57eb95b0/funcy_pipe-0.13.0-py3-none-any.whl", hash = "sha256:ff59bbfa998d985a47e543c777c7865ae40ca07373fdad00f34b64435472eec8", size = 11092, upload-time = "2025-09-23T17:47:08.514Z" },
 ]
 
 [[package]]
