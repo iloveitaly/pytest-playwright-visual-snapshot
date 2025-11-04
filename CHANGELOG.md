@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.3...v0.2.4) (2025-11-04)
+
+
+### Documentation
+
+* delete unneeded copier.yml file ([4d6f8df](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/4d6f8df9b3dd7171ba00bc2ec90d61f7f2f45e13))
+
 ## [0.2.3](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.2...v0.2.3) (2025-07-02)
 
 
