@@ -123,6 +123,7 @@ def cleanup_snapshot_failures(pytestconfig: Config):
     )
 
     # Clean up the entire failures directory at session start so past failures don't clutter the result
+    # ignore_errors=True to gracefully fail in the case of multiple pytest processes (xdist)
     shutil.rmtree(SnapshotPaths.failures_path, ignore_errors=True)
 
     # Create the directory to ensure it exists
