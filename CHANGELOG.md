@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.4...v0.3.0) (2025-11-05)
+
+
+### Features
+
+* option to ignore size differences ([#52](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/issues/52)) ([80d668a](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/80d668ae34222ccf0120872f8718d2018c58a598))
+
 ## [0.2.4](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.3...v0.2.4) (2025-11-04)
 
 
