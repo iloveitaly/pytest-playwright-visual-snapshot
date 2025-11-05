@@ -94,6 +94,34 @@ def test_with_custom_masks(page, assert_snapshot):
     assert_snapshot(page, mask_elements=[".user-avatar", "#timestamp"])
 ```
 
+### Handling Size Differences
+
+By default, if a snapshot's dimensions change (width or height), pytest will raise an exception without generating visual comparison images. This can happen when taking snapshots of individual elements whose size changes due to visual modifications - for example, a button with updated padding or a container that dynamically adjusts its height.
+
+To see visual diffs even when dimensions change, use the `--ignore-size-diff` flag:
+
+```bash
+pytest --ignore-size-diff
+```
+
+Or configure it globally in your pytest.ini:
+
+```ini
+[pytest]
+playwright_visual_ignore_size_diff = true
+```
+
+Or via `pytest_configure`:
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_ignore_size_diff = True
+```
+
+When enabled, snapshots with different dimensions will still generate the `actual_`, `expected_`, and `diff_` images in the failures folder, allowing you to see exactly what changed visually.
+
+**Example use-case:** You're testing a UI component and update the button padding. Without `--ignore-size-diff`, you'd just get an exception. With it enabled, you get visual diff images showing the padding changes, making it easy to review and decide if the changes are intentional.
+
 ### GitHub Actions Script
 
 The CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
@@ -110,10 +138,17 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 ## API
 
+### Fixture Parameters
+
 - `threshold` - sets the threshold for the comparison of the screenshots:`0` to `1`. Default is `0.1`
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
 - `fail_fast` - If `True`, will fail after first different pixel. `False` by default
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
+
+### Command Line Options
+
+- `--update-snapshots` - Update existing snapshots with new screenshots
+- `--ignore-size-diff` - Generate visual diffs even when snapshot dimensions differ (instead of raising an exception)
 
 ## Alternatives
 
