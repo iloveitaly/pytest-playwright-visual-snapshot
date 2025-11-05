@@ -75,12 +75,35 @@ def pytest_addoption(parser: Parser) -> None:
         default=[],
     )
 
+    parser.addini(
+        "playwright_visual_ignore_size_diff",
+        "Allow snapshots with different dimensions to generate visual diffs instead of failing",
+        type="bool",
+        default=True,
+    )
+
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
         action="store_true",
         default=False,
         help="Update snapshots.",
+    )
+
+    group.addoption(
+        "--ignore-size-diff",
+        action="store_true",
+        default=None,
+        dest="playwright_visual_ignore_size_diff",
+        help="Allow snapshots with different dimensions to generate visual diffs instead of failing (overrides ini setting).",
+    )
+
+    group.addoption(
+        "--no-ignore-size-diff",
+        action="store_false",
+        default=None,
+        dest="playwright_visual_ignore_size_diff",
+        help="Fail immediately when snapshot dimensions differ (overrides ini setting).",
     )
 
 
@@ -164,6 +187,12 @@ def assert_snapshot(
         _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None) or []
     )
     update_snapshot = _get_option(pytestconfig, "update_snapshots", cast=bool)
+    ignore_size_diff = _get_option(
+        pytestconfig, "playwright_visual_ignore_size_diff", cast=bool
+    )
+    # Default to True if not explicitly set
+    if ignore_size_diff is None:
+        ignore_size_diff = True
 
     # for automatically naming multiple assertions
     counter = 0
@@ -252,15 +281,20 @@ def assert_snapshot(
         img_b = Image.open(screenshot_file)
         img_diff = Image.new("RGBA", img_a.size)
 
+        mismatch = 0
         try:
             mismatch = pixelmatch(
                 img_a, img_b, img_diff, threshold=threshold, fail_fast=fail_fast
             )
             if mismatch == 0:
                 return
-        except ValueError:
-            # Raised when image sizes differ. Continue generating failure results.
-            pass  
+        except ValueError as e:
+            # Raised when image sizes differ
+            if not ignore_size_diff:
+                # Re-raise the exception if size differences should not be ignored
+                raise
+            # Otherwise, continue generating failure results
+            logger.debug(f"Image size mismatch detected: {e}. Continuing with failure generation.")  
 
         # Create new test_results folder
         failure_results_dir.mkdir(parents=True, exist_ok=True)
