@@ -79,7 +79,7 @@ def pytest_addoption(parser: Parser) -> None:
         "playwright_visual_ignore_size_diff",
         "Allow snapshots with different dimensions to generate visual diffs instead of failing",
         type="bool",
-        default=True,
+        default=False,
     )
 
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
@@ -96,14 +96,6 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         dest="playwright_visual_ignore_size_diff",
         help="Allow snapshots with different dimensions to generate visual diffs instead of failing (overrides ini setting).",
-    )
-
-    group.addoption(
-        "--no-ignore-size-diff",
-        action="store_false",
-        default=None,
-        dest="playwright_visual_ignore_size_diff",
-        help="Fail immediately when snapshot dimensions differ (overrides ini setting).",
     )
 
 
@@ -190,9 +182,9 @@ def assert_snapshot(
     ignore_size_diff = _get_option(
         pytestconfig, "playwright_visual_ignore_size_diff", cast=bool
     )
-    # Default to True if not explicitly set
+    # Default to False if not explicitly set
     if ignore_size_diff is None:
-        ignore_size_diff = True
+        ignore_size_diff = False
 
     # for automatically naming multiple assertions
     counter = 0
