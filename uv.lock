@@ -547,14 +547,14 @@ wheels = [
 
 [[package]]
 name = "ipython-playground"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/e9/0d8934b8e5d7775456156bedc7d9a2245d4487bf8fedf76443240c87f4f6/ipython_playground-0.4.0.tar.gz", hash = "sha256:a3996733fa1ebf9df8df49ccb75a107693a5b03d6e0809129f430af1339e1526", size = 354446, upload-time = "2025-08-26T12:00:59.202Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/b2/a006b9be6d955592d1d4d22ef9cb688c879b08c1890506f08215127dc623/ipython_playground-0.4.1.tar.gz", hash = "sha256:eaad8bfc66d7069be6f2df4a014bc598f81bd4f8249afb1cfbfe3f8681fa7096", size = 355206, upload-time = "2025-11-12T16:31:07.561Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/8c/210d91ea59c0055497cea5f6c4fe2a50cf156ff9346fdf7c11b902bd3494/ipython_playground-0.4.0-py3-none-any.whl", hash = "sha256:99d22f0dce93dd20c05cc127030a1d7fc2a2caa24f9ef3586c38150ed866c422", size = 8562, upload-time = "2025-08-26T12:00:58.128Z" },
+    { url = "https://files.pythonhosted.org/packages/be/a0/e41cb6b6dd8bb1e927485cf73a068c19ec10952d95acf4e7f3610011a7d6/ipython_playground-0.4.1-py3-none-any.whl", hash = "sha256:f8b3925f60ee10a432360f43bbfe340ba099fcc7c0520e7e0634d8ae909a60d6", size = 9220, upload-time = "2025-11-12T16:31:06.46Z" },
 ]
 
 [[package]]
