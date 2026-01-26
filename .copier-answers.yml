@@ -1,2 +1,2 @@
 # this exact file name is required in this exact location if updates are to work
-{"_commit": "v0.2.1-30-gd0f64f7", "_src_path": "https://github.com/iloveitaly/python-package-template", "project_name": "pytest-playwright-visual-snapshot", "full_name": "Michael Bianco", "email": "mike@mikebian.co", "github_username": "iloveitaly"}
+{"_commit": "v1.0.0-17-g1a6c494", "_src_path": "https://github.com/iloveitaly/python-package-template", "project_name": "pytest-playwright-visual-snapshot", "full_name": "Michael Bianco", "email": "mike@mikebian.co", "github_username": "iloveitaly", "build_workflow": "release_please_matrix", "add_llm_rules": false, "include_postgres": false}

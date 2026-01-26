@@ -1,3 +1,5 @@
-python 3.13.2
-uv 0.6.9
-direnv 2.35.0
+python 3.14
+
+uv latest
+direnv latest
+just latest
