@@ -5,4 +5,3 @@ logger = configure_logger()
 
 def main():
     logger.info("Hello, Logs!")
-

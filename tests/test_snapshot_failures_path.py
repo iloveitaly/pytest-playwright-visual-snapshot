@@ -38,10 +38,10 @@ def test_failures_are_written(browser_name: str, testdir: pytest.Testdir) -> Non
     )
 
     # Run once to create the snapshot
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Run again to create the failure
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
     test_name = f"test_snapshot[{browser_name}][{sys.platform}]"
@@ -91,10 +91,10 @@ def test_failures_are_cleaned_on_update(
     )
 
     # Run once to create snapshot
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Run again to generate failure
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
     test_name = f"test_snapshot[{browser_name}][{sys.platform}]"
@@ -112,7 +112,7 @@ def test_failures_are_cleaned_on_update(
     )
 
     # Run with update flag to update snapshots
-    result = testdir.runpytest("--browser", browser_name, "--update-snapshots")
+    _ = testdir.runpytest("--browser", browser_name, "--update-snapshots")
 
     # Directory should be cleaned/removed after update
     assert not failures_dir.exists(), (
@@ -151,10 +151,10 @@ def test_multiple_failures_in_test(browser_name: str, testdir: pytest.Testdir) -
     )
 
     # Run once to create snapshots
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Run again to generate failures
-    result = testdir.runpytest("--browser", browser_name)
+    _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
     test_name = f"test_multiple_snapshots[{browser_name}][{sys.platform}]"

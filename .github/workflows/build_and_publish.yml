@@ -16,7 +16,19 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        env:
+          MISE_ENV: ci
+      - uses: iloveitaly/github-action-direnv-load-and-mask@master
+      - run: uv sync
+      - run: just lint
+
   matrix-test:
+    needs: lint
     strategy:
       matrix:
         # windows-latest

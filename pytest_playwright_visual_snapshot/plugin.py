@@ -103,7 +103,7 @@ def test_name_without_parameters(test_name: str) -> str:
     return test_name.split("[", 1)[0]
 
 
-def _create_locators_from_selectors(page: SyncPage, selectors: List[str]):
+def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[str]):
     """
     Convert a list of CSS selector strings to locator objects
     """
@@ -112,8 +112,8 @@ def _create_locators_from_selectors(page: SyncPage, selectors: List[str]):
 
 # Add a data store for computed paths
 class SnapshotPaths:
-    snapshots_path: Path = None
-    failures_path: Path = None
+    snapshots_path: Path | None = None
+    failures_path: Path | None = None
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -124,7 +124,7 @@ def cleanup_snapshot_failures(pytestconfig: Config):
     The snapshot storage path is relative to each test folder, modeling after the React snapshot locations
     """
 
-    root_dir = Path(pytestconfig.rootdir)
+    root_dir = Path(pytestconfig.rootdir)  # type: ignore
 
     # Compute paths once
     SnapshotPaths.snapshots_path = Path(
@@ -159,7 +159,6 @@ def assert_snapshot(
     test_name = f"{test_function_name}[{str(sys.platform)}]"
 
     current_test_file_path = Path(request.node.fspath)
-    test_files_directory = current_test_file_path.parent.resolve()
 
     # Use global paths if available, otherwise calculate per test
     snapshots_path = SnapshotPaths.snapshots_path
@@ -286,7 +285,9 @@ def assert_snapshot(
                 # Re-raise the exception if size differences should not be ignored
                 raise
             # Otherwise, continue generating failure results
-            logger.debug(f"Image size mismatch detected: {e}. Continuing with failure generation.")  
+            logger.debug(
+                f"Image size mismatch detected: {e}. Continuing with failure generation."
+            )
 
         # Create new test_results folder
         failure_results_dir.mkdir(parents=True, exist_ok=True)
