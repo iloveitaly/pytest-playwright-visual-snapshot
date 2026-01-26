@@ -1,6 +1,6 @@
 [project]
 name = "pytest-playwright-visual-snapshot"
-version = "0.3.0"
+version = "0.3.1"
 description = "Easy pytest visual regression testing using playwright"
 keywords = ["pytest", "playwright", "visual", "regression", "testing"]
 readme = "README.md"

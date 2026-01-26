@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.3.0...v0.3.1) (2026-01-26)
+
+
+### Bug Fixes
+
+* add lint job to CI and minor type fixes in plugin ([622c93d](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/622c93d6a3c474808def47eeef99762b43dc5550))
+
+
+### Documentation
+
+* add coding guidelines for copilot, cursor, and python ([6ce0b76](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/6ce0b764250e6976eaa8bde0339fe45c09f9acfa))
+
 ## [0.3.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.2.4...v0.3.0) (2025-11-05)
 
 
