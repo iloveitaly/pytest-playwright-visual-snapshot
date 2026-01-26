@@ -122,6 +122,10 @@ When enabled, snapshots with different dimensions will still generate the `actua
 
 **Example use-case:** You're testing a UI component and update the button padding. Without `--ignore-size-diff`, you'd just get an exception. With it enabled, you get visual diff images showing the padding changes, making it easy to review and decide if the changes are intentional.
 
+### Disabling Visual Snapshots Locally
+
+If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
+
 ### GitHub Actions Script
 
 The CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
@@ -149,6 +153,7 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 - `--update-snapshots` - Update existing snapshots with new screenshots
 - `--ignore-size-diff` - Generate visual diffs even when snapshot dimensions differ (instead of raising an exception)
+- `--disable-visual-snapshots` - Disable visual snapshot assertions
 
 ## Alternatives
 
