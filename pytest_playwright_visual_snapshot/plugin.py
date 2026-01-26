@@ -82,6 +82,13 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
     )
 
+    parser.addini(
+        "playwright_visual_disable_snapshots",
+        "Disable visual snapshot comparisons",
+        type="bool",
+        default=False,
+    )
+
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
@@ -96,6 +103,14 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         dest="playwright_visual_ignore_size_diff",
         help="Allow snapshots with different dimensions to generate visual diffs instead of failing (overrides ini setting).",
+    )
+
+    group.addoption(
+        "--disable-visual-snapshots",
+        action="store_true",
+        default=None,
+        dest="playwright_visual_disable_snapshots",
+        help="Disable visual snapshot assertions (overrides ini setting).",
     )
 
 
@@ -185,10 +200,17 @@ def assert_snapshot(
     if ignore_size_diff is None:
         ignore_size_diff = False
 
+    disable_snapshots = _get_option(
+        pytestconfig, "playwright_visual_disable_snapshots", cast=bool
+    )
+    if disable_snapshots is None:
+        disable_snapshots = False
+
     # for automatically naming multiple assertions
     counter = 0
     # Collection to store failures
     failures = []
+    warned_disabled = False
 
     def compare(
         img_or_page: Union[bytes, Any],
@@ -199,6 +221,16 @@ def assert_snapshot(
         mask_elements: List[str] | None = None,
     ) -> None:
         nonlocal counter
+        nonlocal warned_disabled
+
+        if disable_snapshots:
+            if not warned_disabled:
+                logger.warning(
+                    "%s Visual snapshots disabled; skipping assertions.",
+                    SNAPSHOT_MESSAGE_PREFIX,
+                )
+                warned_disabled = True
+            return
 
         if not name:
             if counter > 0:
