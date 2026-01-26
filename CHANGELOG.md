@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.3.1...v0.4.0) (2026-01-26)
+
+
+### Features
+
+* add option to disable visual snapshots via flag or ini ([803fbaa](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/803fbaa2a827d7dc1252241dbef3cc0a63f53282))
+* **justfile:** add command to view last failed build logs ([20bc8a6](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/20bc8a696dbaa4381da6086acfefd8278aa0ad16))
+
+
+### Documentation
+
+* add section on disabling visual snapshots locally ([ad261b2](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/ad261b2adf50390840cde6930114029210c71163))
+
 ## [0.3.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.3.0...v0.3.1) (2026-01-26)
 
 
