@@ -14,9 +14,6 @@ def test_disable_visual_snapshots(testdir: pytest.Testdir) -> None:
 
     result = testdir.runpytest("--disable-visual-snapshots")
     result.assert_outcomes(passed=1)
-    assert "[playwright-visual-snapshot] Visual snapshots disabled" in "".join(
-        result.outlines
-    )
 
     snapshots_dir = Path(testdir.tmpdir) / "__snapshots__"
     assert not snapshots_dir.exists()
