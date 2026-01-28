@@ -32,5 +32,10 @@
     ".ruff_cache": true,
     ".pytest_cache": true,
     ".venv": true
-  }
+  },
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }
