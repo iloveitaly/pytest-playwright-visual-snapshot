@@ -192,18 +192,18 @@ class AssertSnapshot:
         self._current_test_file_path = Path(request.node.fspath)
 
         # Use global paths if available, otherwise calculate per test
-        self._snapshots_path = SnapshotPaths.snapshots_path
+        self._snapshots_path: Path = SnapshotPaths.snapshots_path
         assert self._snapshots_path
 
-        self._snapshot_failures_path = SnapshotPaths.failures_path
+        self._snapshot_failures_path: Path = SnapshotPaths.failures_path
         assert self._snapshot_failures_path
 
         # we know this exists because of the default value on ini
-        self._global_snapshot_threshold: float = _get_option(
+        raw_global_snapshot_threshold = _get_option(
             pytestconfig, "playwright_visual_snapshot_threshold", cast=str
         )
-        assert self._global_snapshot_threshold
-        self._global_snapshot_threshold = float(self._global_snapshot_threshold)
+        assert raw_global_snapshot_threshold
+        self._global_snapshot_threshold = float(raw_global_snapshot_threshold)
 
         self._mask_selectors = (
             _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None)
