@@ -128,8 +128,8 @@ def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[st
 
 # Add a data store for computed paths
 class SnapshotPaths:
-    snapshots_path: Path | None = None
-    failures_path: Path | None = None
+    snapshots_path: Path
+    failures_path: Path
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -192,10 +192,10 @@ class AssertSnapshot:
         self._current_test_file_path = Path(request.node.fspath)
 
         # Use global paths if available, otherwise calculate per test
-        self._snapshots_path: Path = SnapshotPaths.snapshots_path
+        self._snapshots_path = SnapshotPaths.snapshots_path
         assert self._snapshots_path
 
-        self._snapshot_failures_path: Path = SnapshotPaths.failures_path
+        self._snapshot_failures_path = SnapshotPaths.failures_path
         assert self._snapshot_failures_path
 
         # we know this exists because of the default value on ini
