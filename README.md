@@ -23,7 +23,7 @@ pip install pytest-playwright-visual-snapshot
 This plugin provides a `assert_snapshot` fixture which is used to create snapshots and compare it.
 
 ```python
-def test_myapp(page, assert_snapshot):
+def test_myapp(page, assert_snapshot: AssertSnapshot):
     page.goto("https://example.com")
     assert_snapshot(page)
 ```
@@ -89,7 +89,7 @@ def pytest_configure(config: Config):
 Or specify masks directly in your test:
 
 ```python
-def test_with_custom_masks(page, assert_snapshot):
+def test_with_custom_masks(page, assert_snapshot: AssertSnapshot):
     page.goto("https://example.com")
     assert_snapshot(page, mask_elements=[".user-avatar", "#timestamp"])
 ```
