@@ -5,12 +5,13 @@ import sys
 import typing as t
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, List, TypeVar, Union
+from typing import Any, List, TypeVar, Union
 
 import pytest
 from PIL import Image
 from pixelmatch.contrib.PIL import pixelmatch
-from playwright.sync_api import Locator, Page as SyncPage
+from playwright.sync_api import Locator
+from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 
 logging.basicConfig(
@@ -127,8 +128,8 @@ def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[st
 
 # Add a data store for computed paths
 class SnapshotPaths:
-    snapshots_path: Path | None = None
-    failures_path: Path | None = None
+    snapshots_path: Path
+    failures_path: Path
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -165,87 +166,99 @@ def cleanup_snapshot_failures(pytestconfig: Config):
     yield
 
 
-@pytest.fixture
-def assert_snapshot(
-    pytestconfig: Config, request: FixtureRequest, browser_name: str
-) -> Callable:
-    test_function_name = request.node.name
-    test_name_without_params = test_name_without_parameters(test_function_name)
-    test_name = f"{test_function_name}[{str(sys.platform)}]"
+class AssertSnapshot:
+    """Assert that a snapshot matches the stored baseline.
 
-    current_test_file_path = Path(request.node.fspath)
+    Example:
+        ```
+        def test_myapp(page, assert_snapshot: AssertSnapshot):
+            page.goto("https://example.com")
+            assert_snapshot(page)
+        ```
+    """
 
-    # Use global paths if available, otherwise calculate per test
-    snapshots_path = SnapshotPaths.snapshots_path
-    assert snapshots_path
+    def __init__(
+        self,
+        pytestconfig: Config,
+        request: FixtureRequest,
+        failures: List[str],
+    ) -> None:
+        test_function_name = request.node.name
+        self._test_name_without_params = test_name_without_parameters(
+            test_function_name
+        )
+        self._test_name = f"{test_function_name}[{str(sys.platform)}]"
 
-    snapshot_failures_path = SnapshotPaths.failures_path
-    assert snapshot_failures_path
+        self._current_test_file_path = Path(request.node.fspath)
 
-    # we know this exists because of the default value on ini
-    global_snapshot_threshold = _get_option(
-        pytestconfig, "playwright_visual_snapshot_threshold", cast=str
-    )
-    assert global_snapshot_threshold
-    global_snapshot_threshold = float(global_snapshot_threshold)
+        # Use global paths if available, otherwise calculate per test
+        self._snapshots_path = SnapshotPaths.snapshots_path
+        assert self._snapshots_path
 
-    mask_selectors = (
-        _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None) or []
-    )
-    update_snapshot = _get_option(pytestconfig, "update_snapshots", cast=bool)
-    ignore_size_diff = _get_option(
-        pytestconfig, "playwright_visual_ignore_size_diff", cast=bool
-    )
-    # Default to False if not explicitly set
-    if ignore_size_diff is None:
-        ignore_size_diff = False
+        self._snapshot_failures_path = SnapshotPaths.failures_path
+        assert self._snapshot_failures_path
 
-    disable_snapshots = _get_option(
-        pytestconfig, "playwright_visual_disable_snapshots", cast=bool
-    )
-    if disable_snapshots is None:
-        disable_snapshots = False
+        # we know this exists because of the default value on ini
+        raw_global_snapshot_threshold = _get_option(
+            pytestconfig, "playwright_visual_snapshot_threshold", cast=str
+        )
+        assert raw_global_snapshot_threshold
+        self._global_snapshot_threshold = float(raw_global_snapshot_threshold)
 
-    # for automatically naming multiple assertions
-    counter = 0
-    # Collection to store failures
-    failures = []
-    warned_disabled = False
+        self._mask_selectors = (
+            _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None)
+            or []
+        )
+        self._update_snapshot = (
+            _get_option(pytestconfig, "update_snapshots", cast=bool) or False
+        )
+        self._ignore_size_diff = (
+            _get_option(pytestconfig, "playwright_visual_ignore_size_diff", cast=bool)
+            or False
+        )
 
-    def compare(
+        self._disable_snapshots = (
+            _get_option(pytestconfig, "playwright_visual_disable_snapshots", cast=bool)
+            or False
+        )
+
+        self._failures = failures
+
+        self._warned_disabled = False
+        self._counter = 0
+
+    def __call__(
+        self,
         img_or_page: Union[bytes, Any],
         *,
         threshold: float | None = None,
-        name=None,
-        fail_fast=False,
+        name: str | None = None,
+        fail_fast: bool = False,
         mask_elements: List[str] | None = None,
     ) -> None:
-        nonlocal counter
-        nonlocal warned_disabled
-
-        if disable_snapshots:
-            if not warned_disabled:
+        if self._disable_snapshots:
+            if not self._warned_disabled:
                 logger.warning(
                     "%s Visual snapshots disabled; skipping assertions.",
                     SNAPSHOT_MESSAGE_PREFIX,
                 )
-                warned_disabled = True
+                self._warned_disabled = True
             return
 
         if not name:
-            if counter > 0:
-                name = f"{test_name}_{counter}.png"
+            if self._counter > 0:
+                name = f"{self._test_name}_{self._counter}.png"
             else:
-                name = f"{test_name}.png"
+                name = f"{self._test_name}.png"
 
         # Use global threshold if no local threshold provided
         if not threshold:
-            threshold = global_snapshot_threshold
+            threshold = self._global_snapshot_threshold
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
             # Combine configured mask elements with any provided in the function call
-            all_mask_selectors = list(mask_selectors)
+            all_mask_selectors = list(self._mask_selectors)
             if mask_elements:
                 all_mask_selectors.extend(mask_elements)
 
@@ -267,11 +280,13 @@ def assert_snapshot(
             img = img_or_page
 
         # test file without the extension
-        test_file_name_without_extension = current_test_file_path.stem
+        test_file_name_without_extension = self._current_test_file_path.stem
 
         # Created a nested folder to store screenshots: snapshot/test_file_name/test_name/
         test_file_snapshot_dir = (
-            snapshots_path / test_file_name_without_extension / test_name_without_params
+            self._snapshots_path
+            / test_file_name_without_extension
+            / self._test_name_without_params
         )
         test_file_snapshot_dir.mkdir(parents=True, exist_ok=True)
 
@@ -280,22 +295,24 @@ def assert_snapshot(
         # Create a dir where all snapshot test failures will go
         # ex: snapshot_failures/test_file_name/test_name
         failure_results_dir = (
-            snapshot_failures_path / test_file_name_without_extension / test_name
+            self._snapshot_failures_path
+            / test_file_name_without_extension
+            / self._test_name
         )
 
         # increment counter before any failures are recorded
-        counter += 1
+        self._counter += 1
 
-        if update_snapshot:
+        if self._update_snapshot:
             screenshot_file.write_bytes(img)
-            failures.append(
+            self._failures.append(
                 f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots updated. Please review images. {screenshot_file}"
             )
             return
 
         if not screenshot_file.exists():
             screenshot_file.write_bytes(img)
-            failures.append(
+            self._failures.append(
                 f"{SNAPSHOT_MESSAGE_PREFIX} New snapshot(s) created. Please review images. {screenshot_file}"
             )
             return
@@ -313,7 +330,7 @@ def assert_snapshot(
                 return
         except ValueError as e:
             # Raised when image sizes differ
-            if not ignore_size_diff:
+            if not self._ignore_size_diff:
                 # Re-raise the exception if size differences should not be ignored
                 raise
             # Otherwise, continue generating failure results
@@ -335,7 +352,17 @@ def assert_snapshot(
         if fail_fast:
             pytest.fail(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
 
-        failures.append(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
+        self._failures.append(
+            f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}"
+        )
+
+
+@pytest.fixture
+def assert_snapshot(
+    pytestconfig: Config, request: FixtureRequest, browser_name: str
+) -> AssertSnapshot:
+    # Collection to store failures
+    failures = []
 
     # Register finalizer to report all failures at the end of the test
     def finalize():
@@ -344,4 +371,8 @@ def assert_snapshot(
 
     request.addfinalizer(finalize)
 
-    return compare
+    return AssertSnapshot(
+        pytestconfig=pytestconfig,
+        request=request,
+        failures=failures,
+    )
