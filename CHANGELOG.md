@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.4.0...v0.5.0) (2026-02-03)
+
+
+### Features
+
+* **plugin:** add type annotations to assert_snapshot ([#88](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/issues/88)) ([c7ffa44](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/c7ffa4466577e8a79164ac49e845905cd064e7a7))
+
 ## [0.4.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.3.1...v0.4.0) (2026-01-26)
 
 
