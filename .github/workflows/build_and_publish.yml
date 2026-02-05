@@ -15,6 +15,7 @@ env:
 
   # required otherwise github api calls are rate limited
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  MISE_ENV: ci
 
 jobs:
   lint:
@@ -22,8 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: jdx/mise-action@v3
-        env:
-          MISE_ENV: ci
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: just lint
@@ -56,6 +55,8 @@ jobs:
       pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@v6
       - uses: googleapis/release-please-action@v4
@@ -67,9 +68,13 @@ jobs:
     needs: release-please
     runs-on: ubuntu-latest
     if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: jdx/mise-action@v3
+      - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: uv build
       - run: uv publish
