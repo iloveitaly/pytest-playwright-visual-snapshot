@@ -1,3 +1,9 @@
+[![Release Notes](https://img.shields.io/github/release/iloveitaly/pytest-playwright-visual-snapshot)](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/releases)
+[![Downloads](https://static.pepy.tech/badge/pytest-playwright-visual-snapshot/month)](https://pepy.tech/project/pytest-playwright-visual-snapshot)
+[![Python Versions](https://img.shields.io/pypi/pyversions/pytest-playwright-visual-snapshot)](https://pypi.org/project/pytest-playwright-visual-snapshot)
+![GitHub CI Status](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/actions/workflows/build_and_publish.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Pytest Plugin for Visual Testing with Playwright
 
 As of 2025-03-22 of all of the existing packages to do simple visual regression testing using playwright are long dead. I had a bunch of updates I wanted to make to existing systems so I rewrote the plugin with a bunch of updates:
@@ -160,3 +166,7 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 - https://github.com/kumaraditya303/pytest-playwright-snapshot - long dead
 - https://github.com/symon-storozhenko/pytest-playwright-visual - fork of the above repo, long dead
 - https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker - requires a separate server to run
+
+---
+
+*This project was created from [iloveitaly/python-package-template](https://github.com/iloveitaly/python-package-template)*
