@@ -20,7 +20,7 @@ You can see this implemented in a [working project here](https://github.com/ilov
 ## Installation
 
 ```bash
-pip install pytest-playwright-visual-snapshot
+uv add --dev pytest-playwright-visual-snapshot
 ```
 
 ## Usage
