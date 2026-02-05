@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.5.0...v0.5.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* remove duplicate workflow permission call in Justfile ([a7a545a](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/a7a545a7a44e7bdde3659d772208f755d163f648))
+
+
+### Documentation
+
+* add badges and project origin to README.md ([427e495](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/427e495adba03150407fca8c336cd680ba1f1f64))
+* remove Python version badge from README.md ([a1686f2](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/a1686f2b551306851bbc7809a6957a6d9449a8e3))
+* update install instructions to use uv add instead of pip ([225fbcb](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/225fbcb4afb8ef1c8f8e91dbdbf517d49bb39a15))
+
 ## [0.5.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.4.0...v0.5.0) (2026-02-03)
 
 
