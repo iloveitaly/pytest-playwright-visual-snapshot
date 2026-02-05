@@ -1,6 +1,5 @@
 [![Release Notes](https://img.shields.io/github/release/iloveitaly/pytest-playwright-visual-snapshot)](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/releases)
 [![Downloads](https://static.pepy.tech/badge/pytest-playwright-visual-snapshot/month)](https://pepy.tech/project/pytest-playwright-visual-snapshot)
-[![Python Versions](https://img.shields.io/pypi/pyversions/pytest-playwright-visual-snapshot)](https://pypi.org/project/pytest-playwright-visual-snapshot)
 ![GitHub CI Status](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/actions/workflows/build_and_publish.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
