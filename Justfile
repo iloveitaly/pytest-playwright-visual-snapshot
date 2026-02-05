@@ -154,7 +154,6 @@ github_repo_permissions_create:
       -f default_workflow_permissions=write \
       -F can_approve_pull_request_reviews=true && \
     gh api "/repos/${repo_path}/actions/permissions/workflow"
-    gh api "/repos/${repo_path}/actions/permissions/workflow"
 
 github_repo_set_metadata:
   gh repo edit \
