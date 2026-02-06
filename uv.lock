@@ -1403,11 +1403,12 @@ wheels = [
 
 [[package]]
 name = "pytest-playwright-visual-snapshot"
-version = "0.4.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "pillow" },
     { name = "pixelmatch" },
+    { name = "pydantic" },
     { name = "pytest-playwright" },
     { name = "structlog-config" },
 ]
@@ -1453,6 +1454,7 @@ dev = [
 requires-dist = [
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "pixelmatch", specifier = ">=0.3.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pytest-playwright", specifier = ">=0.7.0" },
     { name = "structlog-config", specifier = ">=0.5.0" },
 ]
