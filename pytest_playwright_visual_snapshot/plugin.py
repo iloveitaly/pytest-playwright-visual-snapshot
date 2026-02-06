@@ -109,7 +109,7 @@ def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[st
 
 @pytest.fixture(scope="session")
 def visual_snapshot_config(pytestconfig: Config) -> VisualSnapshotConfig:
-    pytestconfig.option.playwright_rootdir = Path(pytestconfig.rootdir)
+    pytestconfig.option.playwright_rootdir = Path(pytestconfig.rootdir)  # type: ignore
     return VisualSnapshotConfig.model_validate(pytestconfig.option)
 
 
