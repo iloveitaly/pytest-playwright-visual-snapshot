@@ -166,6 +166,15 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 - https://github.com/symon-storozhenko/pytest-playwright-visual - fork of the above repo, long dead
 - https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker - requires a separate server to run
 
+## Related Projects
+
+- [pytest-playwright-artifacts](https://github.com/iloveitaly/pytest-playwright-artifacts): Pytest plugin that captures HTML, screenshots, and console logs on Playwright test failures.
+- [pytest-plugin-utils](https://github.com/iloveitaly/pytest-plugin-utils): Reusable configuration and artifact utilities for building pytest plugins.
+- [python-starter-template](https://github.com/iloveitaly/python-starter-template): Full-stack application template demonstrating this plugin in action.
+- [beautiful-traceback](https://github.com/iloveitaly/beautiful-traceback): Beautiful, readable Python tracebacks with colors and formatting to help debug failures.
+- [structlog-config](https://github.com/iloveitaly/structlog-config): Structured logging configuration with sensible defaults for development and production.
+- [python-package-prompts](https://github.com/iloveitaly/python-package-prompts): LLM prompt instructions for Python projects.
+
 ---
 
 *This project was created from [iloveitaly/python-package-template](https://github.com/iloveitaly/python-package-template)*
