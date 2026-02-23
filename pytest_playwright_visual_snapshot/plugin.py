@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import sys
-import typing as t
 from io import BytesIO
 from pathlib import Path
 from typing import Any, List, TypeVar, Union
@@ -14,6 +13,8 @@ from playwright.sync_api import Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 
+from pytest_playwright_visual_snapshot.config import VisualSnapshotConfig
+
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
 )
@@ -23,26 +24,6 @@ logger = logging.getLogger(__name__)
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 
 T = TypeVar("T")
-
-
-def _get_option(
-    config: Config, key: str, *, cast: t.Callable[[t.Any], T] | None = str
-) -> T | None:
-    try:
-        val = config.getoption(key)
-    except ValueError:
-        val = None
-
-    if val is None:
-        val = config.getini(key)
-
-    if val is not None:
-        if cast:
-            return cast(val)
-
-        return val
-
-    return None
 
 
 def is_ci_environment() -> bool:
@@ -101,7 +82,7 @@ def pytest_addoption(parser: Parser) -> None:
     group.addoption(
         "--ignore-size-diff",
         action="store_true",
-        default=None,
+        default=False,
         dest="playwright_visual_ignore_size_diff",
         help="Allow snapshots with different dimensions to generate visual diffs instead of failing (overrides ini setting).",
     )
@@ -109,7 +90,7 @@ def pytest_addoption(parser: Parser) -> None:
     group.addoption(
         "--disable-visual-snapshots",
         action="store_true",
-        default=None,
+        default=False,
         dest="playwright_visual_disable_snapshots",
         help="Disable visual snapshot assertions (overrides ini setting).",
     )
@@ -126,42 +107,38 @@ def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[st
     return [page.locator(selector) for selector in selectors]
 
 
-# Add a data store for computed paths
-class SnapshotPaths:
-    snapshots_path: Path
-    failures_path: Path
+@pytest.fixture(scope="session")
+def visual_snapshot_config(pytestconfig: Config) -> VisualSnapshotConfig:
+    pytestconfig.option.playwright_rootdir = Path(pytestconfig.rootdir)  # type: ignore
+    return VisualSnapshotConfig.model_validate(pytestconfig.option)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def cleanup_snapshot_failures(pytestconfig: Config):
+def cleanup_snapshot_failures(visual_snapshot_config: VisualSnapshotConfig):
     """
     Clean up snapshot failures directory once at the beginning of test session.
 
     The snapshot storage path is relative to each test folder, modeling after the React snapshot locations
     """
 
-    root_dir = Path(pytestconfig.rootdir)  # type: ignore
-
-    # Compute paths once
-    SnapshotPaths.snapshots_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshots_path", cast=str)
-        or (root_dir / "__snapshots__")
-    )
-
-    SnapshotPaths.failures_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshot_failures_path", cast=str)
-        or (root_dir / "snapshot_failures")
-    )
-
     # Clean up the entire failures directory at session start so past failures don't clutter the result
     # ignore_errors=True to gracefully fail in the case of multiple pytest processes (xdist)
-    shutil.rmtree(SnapshotPaths.failures_path, ignore_errors=True)
+    shutil.rmtree(
+        visual_snapshot_config.playwright_visual_snapshot_failures_path,
+        ignore_errors=True,
+    )
 
     # Create the directory to ensure it exists
-    SnapshotPaths.failures_path.mkdir(parents=True, exist_ok=True)
+    visual_snapshot_config.playwright_visual_snapshot_failures_path.mkdir(
+        parents=True, exist_ok=True
+    )
 
-    logger.debug(f"Snapshot failures path: {SnapshotPaths.failures_path.resolve()}")
-    logger.debug(f"Snapshots path: {SnapshotPaths.snapshots_path.resolve()}")
+    logger.debug(
+        f"Snapshot failures path: {visual_snapshot_config.playwright_visual_snapshot_failures_path.resolve()}"
+    )
+    logger.debug(
+        f"Snapshots path: {visual_snapshot_config.playwright_visual_snapshots_path.resolve()}"
+    )
 
     yield
 
@@ -179,51 +156,18 @@ class AssertSnapshot:
 
     def __init__(
         self,
-        pytestconfig: Config,
+        visual_snapshot_config: VisualSnapshotConfig,
         request: FixtureRequest,
         failures: List[str],
     ) -> None:
+        self.config = visual_snapshot_config
         test_function_name = request.node.name
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
         self._test_name = f"{test_function_name}[{str(sys.platform)}]"
-
         self._current_test_file_path = Path(request.node.fspath)
-
-        # Use global paths if available, otherwise calculate per test
-        self._snapshots_path = SnapshotPaths.snapshots_path
-        assert self._snapshots_path
-
-        self._snapshot_failures_path = SnapshotPaths.failures_path
-        assert self._snapshot_failures_path
-
-        # we know this exists because of the default value on ini
-        raw_global_snapshot_threshold = _get_option(
-            pytestconfig, "playwright_visual_snapshot_threshold", cast=str
-        )
-        assert raw_global_snapshot_threshold
-        self._global_snapshot_threshold = float(raw_global_snapshot_threshold)
-
-        self._mask_selectors = (
-            _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None)
-            or []
-        )
-        self._update_snapshot = (
-            _get_option(pytestconfig, "update_snapshots", cast=bool) or False
-        )
-        self._ignore_size_diff = (
-            _get_option(pytestconfig, "playwright_visual_ignore_size_diff", cast=bool)
-            or False
-        )
-
-        self._disable_snapshots = (
-            _get_option(pytestconfig, "playwright_visual_disable_snapshots", cast=bool)
-            or False
-        )
-
         self._failures = failures
-
         self._warned_disabled = False
         self._counter = 0
 
@@ -236,7 +180,7 @@ class AssertSnapshot:
         fail_fast: bool = False,
         mask_elements: List[str] | None = None,
     ) -> None:
-        if self._disable_snapshots:
+        if self.config.playwright_visual_disable_snapshots:
             if not self._warned_disabled:
                 logger.warning(
                     "%s Visual snapshots disabled; skipping assertions.",
@@ -253,12 +197,12 @@ class AssertSnapshot:
 
         # Use global threshold if no local threshold provided
         if not threshold:
-            threshold = self._global_snapshot_threshold
+            threshold = self.config.playwright_visual_snapshot_threshold
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
             # Combine configured mask elements with any provided in the function call
-            all_mask_selectors = list(self._mask_selectors)
+            all_mask_selectors = self.config.playwright_visual_snapshot_masks
             if mask_elements:
                 all_mask_selectors.extend(mask_elements)
 
@@ -284,7 +228,7 @@ class AssertSnapshot:
 
         # Created a nested folder to store screenshots: snapshot/test_file_name/test_name/
         test_file_snapshot_dir = (
-            self._snapshots_path
+            self.config.playwright_visual_snapshots_path
             / test_file_name_without_extension
             / self._test_name_without_params
         )
@@ -295,7 +239,7 @@ class AssertSnapshot:
         # Create a dir where all snapshot test failures will go
         # ex: snapshot_failures/test_file_name/test_name
         failure_results_dir = (
-            self._snapshot_failures_path
+            self.config.playwright_visual_snapshot_failures_path
             / test_file_name_without_extension
             / self._test_name
         )
@@ -303,7 +247,7 @@ class AssertSnapshot:
         # increment counter before any failures are recorded
         self._counter += 1
 
-        if self._update_snapshot:
+        if self.config.update_snapshots:
             screenshot_file.write_bytes(img)
             self._failures.append(
                 f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots updated. Please review images. {screenshot_file}"
@@ -330,7 +274,7 @@ class AssertSnapshot:
                 return
         except ValueError as e:
             # Raised when image sizes differ
-            if not self._ignore_size_diff:
+            if not self.config.playwright_visual_ignore_size_diff:
                 # Re-raise the exception if size differences should not be ignored
                 raise
             # Otherwise, continue generating failure results
@@ -359,7 +303,9 @@ class AssertSnapshot:
 
 @pytest.fixture
 def assert_snapshot(
-    pytestconfig: Config, request: FixtureRequest, browser_name: str
+    visual_snapshot_config: VisualSnapshotConfig,
+    request: FixtureRequest,
+    browser_name: str,
 ) -> AssertSnapshot:
     # Collection to store failures
     failures = []
@@ -372,7 +318,7 @@ def assert_snapshot(
     request.addfinalizer(finalize)
 
     return AssertSnapshot(
-        pytestconfig=pytestconfig,
+        visual_snapshot_config=visual_snapshot_config,
         request=request,
         failures=failures,
     )
