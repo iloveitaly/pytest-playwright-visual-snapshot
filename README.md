@@ -127,6 +127,38 @@ When enabled, snapshots with different dimensions will still generate the `actua
 
 **Example use-case:** You're testing a UI component and update the button padding. Without `--ignore-size-diff`, you'd just get an exception. With it enabled, you get visual diff images showing the padding changes, making it easy to review and decide if the changes are intentional.
 
+### Full Page Screenshots
+
+By default, only the currently visible viewport is captured. To capture the entire scrollable page, use the `--full-page` flag:
+
+```bash
+pytest --full-page
+```
+
+Or configure it globally in your pytest.ini:
+
+```ini
+[pytest]
+playwright_visual_full_page = true
+```
+
+Or via `pytest_configure`:
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_full_page = True
+```
+
+Or per-call:
+
+```python
+def test_long_page(page, assert_snapshot: AssertSnapshot):
+    page.goto("https://example.com")
+    assert_snapshot(page, full_page=True)
+```
+
+**Note:** `full_page` only applies when screenshotting a `Page` object, not a `Locator`.
+
 ### Disabling Visual Snapshots Locally
 
 If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
@@ -153,12 +185,14 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
 - `fail_fast` - If `True`, will fail after first different pixel. `False` by default
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
+- `full_page` - If `True`, captures the full scrollable page instead of just the viewport. Only applies to `Page` objects, not `Locator`. `False` by default.
 
 ### Command Line Options
 
 - `--update-snapshots` - Update existing snapshots with new screenshots
 - `--ignore-size-diff` - Generate visual diffs even when snapshot dimensions differ (instead of raising an exception)
 - `--disable-visual-snapshots` - Disable visual snapshot assertions
+- `--full-page` - Capture the full scrollable page instead of the currently visible viewport
 
 ## Alternatives
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import requests
+from PIL import Image
 
 
 @pytest.mark.parametrize(
@@ -180,6 +181,48 @@ def test_fail_fast_option(browser_name: str, testdir: pytest.Testdir) -> None:
     assert "[playwright-visual-snapshot] Snapshots DO NOT match!" in "".join(
         result.outlines
     )
+
+
+@pytest.mark.parametrize(
+    "browser_name",
+    ["chromium"],
+)
+def test_full_page_snapshot(browser_name: str, testdir: pytest.Testdir) -> None:
+    """Test that full_page captures the entire scrollable page, not just the viewport."""
+    testdir.makepyfile(
+        """
+        def test_snapshot(page, assert_snapshot):
+            page.set_content('''
+                <div style="height: 2000px; background: linear-gradient(red, blue);">
+                    Tall content
+                </div>
+            ''')
+            assert_snapshot(page, full_page=True)
+        """
+    )
+
+    # First run creates snapshot
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
+
+    # Verify the snapshot is taller than the default viewport (720px)
+    snapshot_dir = (
+        Path(testdir.tmpdir)
+        / "__snapshots__"
+        / "test_full_page_snapshot"
+        / "test_snapshot"
+    )
+    snapshot_files = list(snapshot_dir.glob("*.png"))
+    assert len(snapshot_files) == 1, f"Expected 1 snapshot, found {len(snapshot_files)}"
+
+    img = Image.open(snapshot_files[0])
+    assert img.height > 720, (
+        f"Full page snapshot height ({img.height}) should be greater than the default viewport height (720)"
+    )
+
+    # Second run should match
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(passed=1)
 
 
 @pytest.mark.parametrize(

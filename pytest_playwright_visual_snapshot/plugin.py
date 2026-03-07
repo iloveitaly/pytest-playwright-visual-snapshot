@@ -90,6 +90,13 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
     )
 
+    parser.addini(
+        "playwright_visual_full_page",
+        "Capture the full scrollable page instead of the currently visible viewport",
+        type="bool",
+        default=False,
+    )
+
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
@@ -112,6 +119,14 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         dest="playwright_visual_disable_snapshots",
         help="Disable visual snapshot assertions (overrides ini setting).",
+    )
+
+    group.addoption(
+        "--full-page",
+        action="store_true",
+        default=None,
+        dest="playwright_visual_full_page",
+        help="Capture the full scrollable page instead of the currently visible viewport (overrides ini setting).",
     )
 
 
@@ -222,6 +237,10 @@ class AssertSnapshot:
             or False
         )
 
+        self._full_page = (
+            _get_option(pytestconfig, "playwright_visual_full_page", cast=bool) or False
+        )
+
         self._failures = failures
 
         self._warned_disabled = False
@@ -235,6 +254,7 @@ class AssertSnapshot:
         name: str | None = None,
         fail_fast: bool = False,
         mask_elements: List[str] | None = None,
+        full_page: bool | None = None,
     ) -> None:
         if self._disable_snapshots:
             if not self._warned_disabled:
@@ -255,6 +275,9 @@ class AssertSnapshot:
         if not threshold:
             threshold = self._global_snapshot_threshold
 
+        if full_page is None:
+            full_page = self._full_page
+
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
             # Combine configured mask elements with any provided in the function call
@@ -269,12 +292,18 @@ class AssertSnapshot:
                 else []
             )
 
+            screenshot_kwargs: dict[str, t.Any] = {}
+            # full_page is only supported on Page, not Locator
+            if isinstance(img_or_page, SyncPage):
+                screenshot_kwargs["full_page"] = full_page
+
             img = img_or_page.screenshot(
                 animations="disabled",
                 type="png",
                 mask=masks,
                 # TODO only for jpeg
                 # quality=100,
+                **screenshot_kwargs,
             )
         else:
             img = img_or_page
