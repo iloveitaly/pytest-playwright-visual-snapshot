@@ -1031,11 +1031,11 @@ wheels = [
 
 [[package]]
 name = "pixelmatch"
-version = "0.3.1"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/62/76/7fc321f805117ab1de302aed3f5b97a502195351efee3e5fa97a1d3c417a/pixelmatch-0.3.1.tar.gz", hash = "sha256:cbae6f7fedcc6e77c36783c2638f1e956c26c0d0179b4186bb1b81098e4e66fc", size = 6800, upload-time = "2026-03-01T06:45:15.811Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/ef/d69a0c50f812326d3b54f8aea0536733d650cc2fb47c6510a2abe54df81d/pixelmatch-0.4.0.tar.gz", hash = "sha256:80a9ae1084941569f0e8cc7fe70b50c02312b4dbaf4b37b710e0f75f9667fa32", size = 7224, upload-time = "2026-03-07T08:55:54.81Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/b5/b7e17147c329e294f8675461630bd3db5d78d46c1256c4cbce82defc8476/pixelmatch-0.3.1-py3-none-any.whl", hash = "sha256:d53de8a09ff34ca3ffd86c1144a7015ccb096c8b6b8fb168edd2d9033da7f722", size = 9275, upload-time = "2026-03-01T06:45:14.654Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/7e/8958796e5077a2473780c9368a0d7f360d1de62c96608b84170c916e4b23/pixelmatch-0.4.0-py3-none-any.whl", hash = "sha256:d40e49e05eab0531bc7665f40309d90f5708c3edd121b3fd63385864005b81a8", size = 9728, upload-time = "2026-03-07T08:55:53.212Z" },
 ]
 
 [[package]]
