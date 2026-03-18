@@ -3,6 +3,7 @@ setup:
     [ -f .env ] || cp .env-example .env
     uv venv && uv sync
     @echo "activate: source ./.venv/bin/activate"
+    uv run playwright install
 
 # Start docker services
 docker_up:
