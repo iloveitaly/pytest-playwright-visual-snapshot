@@ -1,7 +1,8 @@
-from structlog_config import configure_logger
+import logging
+import os
 
-logger = configure_logger()
-
+log = logging.getLogger(__name__)
 
 def main():
-    logger.info("Hello, Logs!")
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "WARNING"))
+    log.info("Hello, Logs!")

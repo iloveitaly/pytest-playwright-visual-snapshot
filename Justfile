@@ -1,11 +1,15 @@
 # Set up the Python environment, done automatically for you when using direnv
 setup:
+    [ -f .env ] || cp .env-example .env
     uv venv && uv sync
     @echo "activate: source ./.venv/bin/activate"
 
 # Start docker services
-up:
+docker_up:
     docker compose up -d --wait
+
+docker_down:
+	docker compose down
 
 # Run tests
 test:
@@ -59,6 +63,9 @@ clean:
 update_from_upstream_template:
     uv tool run --with jinja2_shell_extension \
         copier@latest update --vcs-ref=HEAD --trust --skip-tasks --skip-answered
+
+# set publish permissions, update metadata, and protect master; all in one command
+github_setup: github_repo_permissions_create github_repo_set_metadata github_ruleset_protect_master_create
 
 GITHUB_PROTECT_MASTER_RULESET := """
 {
@@ -122,29 +129,22 @@ github_last_build_failure:
         GH_PAGER=cat gh run view "$ID" --log-failed
     fi
 
-    # 1. Fetch last 20 runs (to skip over 'Metadata Sync', 'Dependabot', etc.)
-    JSON=$(gh run list -b "$BRANCH" -L 20 --json databaseId,conclusion,workflowName)
+# Rerun only failed jobs for the last failed 'build' workflow for the current branch
+[script]
+github_rerun_failed:
+    BRANCH=$(git branch --show-current)
+    # Filter for runs on current branch with failure status, limit to most recent 20
+    JSON=$(gh run list -b "$BRANCH" -s failure -L 20 --json databaseId,workflowName)
+    # Find the latest failure where workflow name contains "build"
+    ID=$(echo "$JSON" | jq -r 'map(select(.workflowName | test("build"; "i"))) | .[0].databaseId')
 
-    # 2. Filter: Find the latest run where name contains "build" (case-insensitive)
-    TARGET=$(echo "$JSON" | jq 'map(select(.workflowName | test("build"; "i"))) | .[0]')
-
-    # 3. Handle case where no build run is found
-    if [[ "$TARGET" == "null" ]]; then
-        echo "No 'build' workflows found in the last 20 runs for $BRANCH."
+    if [[ "$ID" == "null" ]]; then
+        echo "No failed 'build' workflows found for $BRANCH."
         exit 0
     fi
 
-    # 4. Extract Status and ID
-    CONCLUSION=$(echo "$TARGET" | jq -r .conclusion)
-    ID=$(echo "$TARGET" | jq -r .databaseId)
-
-    # 5. Check Success vs Failure
-    if [[ "$CONCLUSION" == "success" ]]; then
-        echo "latest build succeeded"
-    else
-        # Force cat pager to output logs directly to terminal
-        GH_PAGER=cat gh run view "$ID" --log-failed
-    fi
+    echo "Rerunning failed jobs for run $ID..."
+    gh run rerun "$ID" --failed
 
 # Set GitHub Actions permissions for the repository to allow workflows to write and approve PR reviews
 # This enables release-please to run without a personal access token

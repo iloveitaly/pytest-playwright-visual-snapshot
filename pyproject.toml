@@ -22,10 +22,10 @@ playwright_visual_snapshot = "pytest_playwright_visual_snapshot.plugin"
 package = true
 
 [tool.pytest.ini_options]
-addopts = "-p no:playwright --runpytest subprocess -vv"
+addopts = "-p no:playwright --runpytest subprocess -vv --cov --cov-report=term-missing --cov-report=html:tmp/htmlcov"
 
 [build-system]
-requires = ["uv_build>=0.9.0,<0.11.0"]
+requires = ["uv_build>=0.10.0,<0.11"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -62,10 +62,25 @@ debugging-extras = [
     "sqlparse>=0.5.3",
     "uv-development-toggle>=0.4.0",
 ]
-dev = ["pytest>=8.3.3","requests>=2.32.3","pyright[nodejs]>=1.1.380","ruff>=0.8.0"]
+dev = [
+    "pytest>=8.3.4",
+    "requests>=2.32.3",
+    "pyright[nodejs]>=1.1.408",
+    "ruff>=0.15.0",
+    "coverage>=7.13.4",
+    "pytest-cov>=7.0.0",
+    "covdefaults>=2.3.0",
+]
 
 [tool.pyright]
 exclude = ["examples/", "playground/", "tmp/", ".venv/", "tests/"]
+
+[tool.coverage.run]
+plugins = ["covdefaults"]
+source = ["pytest_playwright_visual_snapshot"]
+
+[tool.coverage.report]
+fail_under = 50
 
 [tool.ruff]
 extend-exclude = ["playground.py", "playground/"]
