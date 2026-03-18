@@ -9,7 +9,6 @@ dependencies = [
     "pillow>=11.1.0",
     "pixelmatch>=0.3.0",
     "pytest-playwright>=0.7.0",
-    "structlog-config>=0.5.0",
 ]
 authors = [{ name = "Michael Bianco", email = "mike@mikebian.co" }]
 urls = { "Repository" = "https://github.com/iloveitaly/pytest-playwright-visual-snapshot" }
