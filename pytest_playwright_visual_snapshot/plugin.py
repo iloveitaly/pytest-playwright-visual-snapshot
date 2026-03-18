@@ -271,6 +271,8 @@ class AssertSnapshot:
 
             img = img_or_page.screenshot(
                 animations="disabled",
+                # "css" scale makes tests reproducable on high-DPI devices
+                scale="css",
                 type="png",
                 mask=masks,
                 # TODO only for jpeg
