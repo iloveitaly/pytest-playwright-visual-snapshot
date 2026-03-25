@@ -4,11 +4,12 @@ version = "0.5.1"
 description = "Easy pytest visual regression testing using playwright"
 keywords = ["pytest", "playwright", "visual", "regression", "testing"]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pillow>=11.1.0",
     "pixelmatch>=0.3.0",
     "pytest-playwright>=0.7.0",
+    "pytest-plugin-utils>=0.2.0",
 ]
 authors = [{ name = "Michael Bianco", email = "mike@mikebian.co" }]
 urls = { "Repository" = "https://github.com/iloveitaly/pytest-playwright-visual-snapshot" }
@@ -77,6 +78,7 @@ exclude = ["examples/", "playground/", "tmp/", ".venv/", "tests/"]
 [tool.coverage.run]
 plugins = ["covdefaults"]
 source = ["pytest_playwright_visual_snapshot"]
+parallel = true
 
 [tool.coverage.report]
 fail_under = 50
