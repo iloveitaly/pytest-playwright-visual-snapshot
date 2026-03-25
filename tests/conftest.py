@@ -1,7 +1,6 @@
 import sys
 import os
 import pathlib
-import pytest
 
 pytest_plugins = "pytester"
 
@@ -29,9 +28,9 @@ def assert_single_snapshot_dir(snapshots_dir: pathlib.Path) -> pathlib.Path:
     """Assert that there is exactly one directory in the snapshots directory and return it."""
     assert snapshots_dir.exists()
     snapshot_dirs = [d for d in snapshots_dir.iterdir() if d.is_dir()]
-    assert (
-        len(snapshot_dirs) == 1
-    ), f"Expected 1 snapshot directory, found {len(snapshot_dirs)}: {snapshot_dirs}"
+    assert len(snapshot_dirs) == 1, (
+        f"Expected 1 snapshot directory, found {len(snapshot_dirs)}: {snapshot_dirs}"
+    )
     return snapshot_dirs[0]
 
 

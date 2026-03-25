@@ -37,7 +37,7 @@ def is_ci_environment() -> bool:
 
 def pytest_addoption(parser: Parser) -> None:
     """Register CLI flags and INI options for this plugin."""
-    
+
     # We use pytest-plugin-utils to consistently register options across CLI and INI.
     # It handles parsing and typing for us.
     set_pytest_option(
@@ -160,19 +160,19 @@ def cleanup_snapshot_failures(pytestconfig: Config):
         "playwright_visual_snapshot_failures_path",
         type_hint=Path,
     ) or Path("snapshot_failures")
-    
+
     if not failures_base_dir.is_absolute():
         failures_base_dir = root_dir / failures_base_dir
 
     # Clean up the entire failures directory at session start so past failures don't clutter the result
     # ignore_errors=True to gracefully fail in the case of multiple pytest processes (xdist)
     shutil.rmtree(failures_base_dir, ignore_errors=True)
-    
+
     # Create the directory to ensure it exists
     failures_base_dir.mkdir(parents=True, exist_ok=True)
 
     logger.debug(f"Snapshot failures path: {failures_base_dir.resolve()}")
-    
+
     # Also log the root snapshots path for debugging purposes
     snapshots_base_dir = get_pytest_option(
         NAMESPACE,
@@ -180,7 +180,7 @@ def cleanup_snapshot_failures(pytestconfig: Config):
         "playwright_visual_snapshots_path",
         type_hint=Path,
     ) or Path("__snapshots__")
-    
+
     if not snapshots_base_dir.is_absolute():
         snapshots_base_dir = root_dir / snapshots_base_dir
     logger.debug(f"Snapshots path: {snapshots_base_dir.resolve()}")
@@ -207,7 +207,7 @@ class AssertSnapshot:
     ) -> None:
         self._pytestconfig = pytestconfig
         self._request = request
-        
+
         test_function_name = request.node.name
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
@@ -216,7 +216,7 @@ class AssertSnapshot:
 
         # Resolve base directories for artifacts
         root_dir = Path(pytestconfig.rootdir)  # type: ignore
-        
+
         snapshots_base_dir = get_pytest_option(
             NAMESPACE,
             pytestconfig,
@@ -246,31 +246,41 @@ class AssertSnapshot:
                 "playwright_visual_snapshot_threshold",
                 type_hint=str,
             )
+            or "0.1"
         )
 
-        self._mask_selectors = get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "playwright_visual_snapshot_masks",
-            type_hint=list[str],
+        self._mask_selectors = (
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_snapshot_masks",
+                type_hint=list[str],
+            )
+            or []
         )
-        self._update_snapshot = get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "update_snapshots",
-            type_hint=bool,
+        self._update_snapshot = bool(
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "update_snapshots",
+                type_hint=bool,
+            )
         )
-        self._ignore_size_diff = get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "playwright_visual_ignore_size_diff",
-            type_hint=bool,
+        self._ignore_size_diff = bool(
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_ignore_size_diff",
+                type_hint=bool,
+            )
         )
-        self._disable_snapshots = get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "playwright_visual_disable_snapshots",
-            type_hint=bool,
+        self._disable_snapshots = bool(
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_disable_snapshots",
+                type_hint=bool,
+            )
         )
 
         self._failures = failures
@@ -334,7 +344,9 @@ class AssertSnapshot:
         # Use get_artifact_dir to automatically create a collision-free path for the current test
         # e.g., <snapshots_dir>/<sanitized-test-node-id>
         # Creation is deferred until here to avoid creating directories when snapshots are disabled
-        snapshot_dir = get_artifact_dir(self._request.node, self._snapshots_base_dir, create=True)
+        snapshot_dir = get_artifact_dir(
+            self._request.node, self._snapshots_base_dir, create=True
+        )
         screenshot_file = snapshot_dir / name
 
         # increment counter before any failures are recorded
@@ -377,8 +389,10 @@ class AssertSnapshot:
 
         # Create new failure results folder if needed
         # We set create=True to ensure the directory is created before we try to write to it
-        failure_dir = get_artifact_dir(self._request.node, self._failures_base_dir, create=True)
-        
+        failure_dir = get_artifact_dir(
+            self._request.node, self._failures_base_dir, create=True
+        )
+
         img_diff.save(f"{failure_dir}/diff_{name}")
         img_a.save(f"{failure_dir}/actual_{name}")
         img_b.save(f"{failure_dir}/expected_{name}")

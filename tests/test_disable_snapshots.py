@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from tests.conftest import get_snapshots_dir

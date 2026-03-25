@@ -1,9 +1,6 @@
-from pathlib import Path
-
 import pytest
 
 from tests.conftest import (
-    assert_file_exists_message,
     assert_single_snapshot_dir,
     get_failures_dir,
     list_directory_contents,

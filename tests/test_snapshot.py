@@ -2,8 +2,6 @@
 General tests for the snapshot system
 """
 
-from pathlib import Path
-
 import pytest
 import requests
 
@@ -13,7 +11,6 @@ from tests.conftest import (
     get_expected_filename,
     get_failures_dir,
     get_snapshots_dir,
-    list_directory_contents,
 )
 
 
@@ -31,16 +28,16 @@ def test_filepath_exists(browser_name: str, testdir: pytest.Testdir) -> None:
         """
     )
     snapshots_dir = get_snapshots_dir(testdir)
-    
+
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
-    
+
     snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
-    
+
     filepath = (
         snapshot_dir / get_expected_filename("test_snapshot", browser_name)
     ).resolve()
-    
+
     assert filepath.exists(), assert_file_exists_message(filepath)
 
 
@@ -86,17 +83,15 @@ def test_custom_image_name_generated(
         """
     )
     snapshots_dir = get_snapshots_dir(testdir)
-    
+
     result = testdir.runpytest("--browser", browser_name)
 
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
-    
+
     snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
-    
-    filepath = (
-        snapshot_dir / "test.png"
-    ).resolve()
-    
+
+    filepath = (snapshot_dir / "test.png").resolve()
+
     assert filepath.exists(), assert_file_exists_message(filepath)
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1)  # Second run should pass with no errors
@@ -117,7 +112,7 @@ def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
         """
     )
     snapshots_dir = get_snapshots_dir(testdir)
-    
+
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert (
@@ -132,7 +127,7 @@ def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
     )
 
     snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
-    
+
     filepath = (
         snapshot_dir / get_expected_filename("test_snapshot", browser_name)
     ).resolve()
@@ -165,7 +160,7 @@ def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> N
         """
     )
     snapshots_dir = get_snapshots_dir(testdir)
-    
+
     result = testdir.runpytest("--browser", browser_name)
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert (
@@ -173,11 +168,11 @@ def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> N
         in "".join(result.outlines)
     )
     snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
-    
+
     filepath = (
         snapshot_dir / get_expected_filename("test_snapshot", browser_name)
     ).resolve()
-    
+
     assert filepath.exists()
 
     img = requests.get("https://placehold.co/250x250/000000/FFFFFF/png").content
@@ -207,7 +202,7 @@ def test_actual_expected_diff_images_generated(
         """
     )
     snapshots_dir = get_snapshots_dir(testdir)
-    
+
     result = testdir.runpytest("--browser", browser_name, "--update-snapshots")
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
     assert (
@@ -216,7 +211,7 @@ def test_actual_expected_diff_images_generated(
     )
 
     snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
-    
+
     filepath = (
         snapshot_dir / get_expected_filename("test_snapshot", browser_name)
     ).resolve()
@@ -231,12 +226,12 @@ def test_actual_expected_diff_images_generated(
     )  # Modified from failed=1, errors=0
     results_dir_name = get_failures_dir(testdir)
     test_results_dir = assert_single_snapshot_dir(results_dir_name)
-    
+
     expected_filename = get_expected_filename("test_snapshot", browser_name)
     actual_img = test_results_dir / f"actual_{expected_filename}"
     expected_img = test_results_dir / f"expected_{expected_filename}"
     diff_img = test_results_dir / f"diff_{expected_filename}"
-    
+
     assert actual_img.exists(), assert_file_exists_message(actual_img)
     assert expected_img.exists(), assert_file_exists_message(expected_img)
     assert diff_img.exists(), assert_file_exists_message(diff_img)
