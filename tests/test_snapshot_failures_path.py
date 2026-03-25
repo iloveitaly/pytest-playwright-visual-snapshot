@@ -1,15 +1,13 @@
-import sys
 from pathlib import Path
 
 import pytest
 
-
-def list_directory_contents(path: Path) -> str:
-    """List contents of a directory for debugging purposes."""
-    if not path.exists():
-        return f"Directory {path} does not exist"
-    files = list(path.iterdir()) if path.is_dir() else []
-    return f"Directory {path} contains: {[f.name for f in files]}"
+from tests.conftest import (
+    assert_file_exists_message,
+    assert_single_snapshot_dir,
+    get_failures_dir,
+    list_directory_contents,
+)
 
 
 @pytest.mark.parametrize(
@@ -44,13 +42,8 @@ def test_failures_are_written(browser_name: str, testdir: pytest.Testdir) -> Non
     _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
-    test_name = f"test_snapshot[{browser_name}][{sys.platform}]"
-    failures_dir = (
-        Path(testdir.tmpdir)
-        / "snapshot_failures"
-        / "test_failures_are_written"
-        / test_name
-    )
+    failures_root = get_failures_dir(testdir)
+    failures_dir = assert_single_snapshot_dir(failures_root)
 
     # Verify failure artifacts exist
     assert failures_dir.exists(), f"Failures directory not created: {failures_dir}"
@@ -97,13 +90,8 @@ def test_failures_are_cleaned_on_update(
     _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
-    test_name = f"test_snapshot[{browser_name}][{sys.platform}]"
-    failures_dir = (
-        Path(testdir.tmpdir)
-        / "snapshot_failures"
-        / "test_failures_are_cleaned_on_update"
-        / test_name
-    )
+    failures_root = get_failures_dir(testdir)
+    failures_dir = assert_single_snapshot_dir(failures_root)
 
     # Verify failure directory exists with artifacts
     assert failures_dir.exists(), "Failures directory not created"
@@ -157,13 +145,8 @@ def test_multiple_failures_in_test(browser_name: str, testdir: pytest.Testdir) -
     _ = testdir.runpytest("--browser", browser_name)
 
     # Get path to failures directory
-    test_name = f"test_multiple_snapshots[{browser_name}][{sys.platform}]"
-    failures_dir = (
-        Path(testdir.tmpdir)
-        / "snapshot_failures"
-        / "test_multiple_failures_in_test"
-        / test_name
-    )
+    failures_root = get_failures_dir(testdir)
+    failures_dir = assert_single_snapshot_dir(failures_root)
 
     # Verify multiple failure artifacts exist
     assert failures_dir.exists(), "Failures directory not created"

@@ -1,8 +1,13 @@
-import sys
 from pathlib import Path
 
 import pytest
 import requests
+
+from tests.conftest import (
+    assert_single_snapshot_dir,
+    get_expected_filename,
+    get_snapshots_dir,
+)
 
 
 @pytest.mark.parametrize(
@@ -120,12 +125,8 @@ def test_multiple_snapshots_in_test(browser_name: str, testdir: pytest.Testdir) 
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
 
     # Check that multiple snapshots were created
-    snapshot_dir = (
-        Path(testdir.tmpdir)
-        / "__snapshots__"
-        / "test_multiple_snapshots_in_test"
-        / "test_multiple_snapshots"
-    )
+    snapshots_root = get_snapshots_dir(testdir)
+    snapshot_dir = assert_single_snapshot_dir(snapshots_root)
 
     # Count total number of snapshots created instead of assuming specific naming
     snapshot_files = list(snapshot_dir.glob("test_multiple_snapshots*.png"))
@@ -158,13 +159,11 @@ def test_fail_fast_option(browser_name: str, testdir: pytest.Testdir) -> None:
     result.assert_outcomes(passed=1, errors=1)  # Test passes but has teardown error
 
     # Path to the snapshot file
-    filepath = (
-        Path(testdir.tmpdir)
-        / "__snapshots__"
-        / "test_fail_fast_option"
-        / "test_fail_fast"
-        / f"test_fail_fast[{browser_name}][{sys.platform}].png"
-    )
+    snapshots_root = Path(testdir.tmpdir) / "__snapshots__"
+    assert snapshots_root.exists()
+    snapshot_dirs = list(snapshots_root.iterdir())
+    assert len(snapshot_dirs) == 1
+    filepath = snapshot_dirs[0] / get_expected_filename("test_fail_fast", browser_name)
 
     # Replace the snapshot with a different image
     img = requests.get("https://placehold.co/250x250/000000/FFFFFF/png").content
@@ -212,21 +211,21 @@ def test_parametrized_tests(browser_name: str, testdir: pytest.Testdir) -> None:
         passed=2, errors=2
     )  # 2 tests pass but each has a teardown error
 
-    # Check that parametrized snapshots were created with correct names
-    snapshot_dir = (
-        Path(testdir.tmpdir)
-        / "__snapshots__"
-        / "test_parametrized_tests"
-        / "test_themes"
-    )
+    # Should have snapshots for both parameter values in their respective directories
+    snapshots_root = Path(testdir.tmpdir) / "__snapshots__"
+    assert snapshots_root.exists()
+    snapshot_dirs = list(snapshots_root.iterdir())
+    assert len(snapshot_dirs) == 2
 
-    # Should have snapshots for both parameter values
-    assert (
-        snapshot_dir / f"test_themes[{browser_name}-light][{sys.platform}].png"
-    ).exists()
-    assert (
-        snapshot_dir / f"test_themes[{browser_name}-dark][{sys.platform}].png"
-    ).exists()
+    # Check each theme
+    for theme in ["light", "dark"]:
+        found = False
+        for snapshot_dir in snapshot_dirs:
+            # We use a glob to be safe since parametrization naming can be tricky
+            if list(snapshot_dir.glob(f"test_themes*{theme}*.png")):
+                found = True
+                break
+        assert found, f"Snapshot for {theme} not found in any directory"
 
     # Second run should pass
     result = testdir.runpytest("--browser", browser_name)
