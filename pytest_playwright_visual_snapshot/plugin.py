@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import sys
-import typing as t
 from io import BytesIO
 from pathlib import Path
 from typing import Any, List, TypeVar, Union
@@ -13,6 +12,12 @@ from pixelmatch.contrib.PIL import pixelmatch
 from playwright.sync_api import Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
+from pytest_plugin_utils import (
+    get_artifact_dir,
+    get_pytest_option,
+    register_pytest_options,
+    set_pytest_option,
+)
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -21,28 +26,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
+NAMESPACE = "pytest_playwright_visual_snapshot"
 
 T = TypeVar("T")
-
-
-def _get_option(
-    config: Config, key: str, *, cast: t.Callable[[t.Any], T] | None = str
-) -> T | None:
-    try:
-        val = config.getoption(key)
-    except ValueError:
-        val = None
-
-    if val is None:
-        val = config.getini(key)
-
-    if val is not None:
-        if cast:
-            return cast(val)
-
-        return val
-
-    return None
 
 
 def is_ci_environment() -> bool:
@@ -50,51 +36,82 @@ def is_ci_environment() -> bool:
 
 
 def pytest_addoption(parser: Parser) -> None:
-    parser.addini(
+    """Register CLI flags and INI options for this plugin."""
+    
+    # We use pytest-plugin-utils to consistently register options across CLI and INI.
+    # It handles parsing and typing for us.
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_snapshot_threshold",
-        "Threshold for visual comparison of snapshots",
-        type="string",
         default="0.1",
+        help="Threshold for visual comparison of snapshots",
+        available="ini",
+        type_hint=str,
     )
 
-    parser.addini(
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_snapshots_path",
-        "Path where snapshots will be stored",
-        type="string",
+        default="__snapshots__",
+        help="Path where snapshots will be stored",
+        available="ini",
+        type_hint=Path,
     )
 
-    parser.addini(
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_snapshot_failures_path",
-        "Path where snapshot failures will be stored",
-        type="string",
+        default="snapshot_failures",
+        help="Path where snapshot failures will be stored",
+        available="ini",
+        type_hint=Path,
     )
 
-    parser.addini(
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_snapshot_masks",
-        "List of CSS selectors to mask during visual comparison",
-        type="linelist",
         default=[],
+        help="List of CSS selectors to mask during visual comparison",
+        available="ini",
+        type_hint=list[str],
     )
 
-    parser.addini(
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_ignore_size_diff",
-        "Allow snapshots with different dimensions to generate visual diffs instead of failing",
-        type="bool",
         default=False,
+        help="Allow snapshots with different dimensions to generate visual diffs instead of failing",
+        available="ini",
+        type_hint=bool,
     )
 
-    parser.addini(
+    set_pytest_option(
+        NAMESPACE,
         "playwright_visual_disable_snapshots",
-        "Disable visual snapshot comparisons",
-        type="bool",
         default=False,
+        help="Disable visual snapshot comparisons",
+        available="ini",
+        type_hint=bool,
     )
 
+    set_pytest_option(
+        NAMESPACE,
+        "update_snapshots",
+        default=False,
+        help="Update snapshots",
+        available=None,  # Handled manually below
+        type_hint=bool,
+    )
+
+    register_pytest_options(NAMESPACE, parser)
+
+    # Manual CLI registration for specific flag names
     group = parser.getgroup("playwright-snapshot", "Playwright Snapshot")
     group.addoption(
         "--update-snapshots",
         action="store_true",
-        default=False,
+        default=None,
+        dest="update_snapshots",
         help="Update snapshots.",
     )
 
@@ -126,12 +143,6 @@ def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[st
     return [page.locator(selector) for selector in selectors]
 
 
-# Add a data store for computed paths
-class SnapshotPaths:
-    snapshots_path: Path
-    failures_path: Path
-
-
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_snapshot_failures(pytestconfig: Config):
     """
@@ -142,26 +153,37 @@ def cleanup_snapshot_failures(pytestconfig: Config):
 
     root_dir = Path(pytestconfig.rootdir)  # type: ignore
 
-    # Compute paths once
-    SnapshotPaths.snapshots_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshots_path", cast=str)
-        or (root_dir / "__snapshots__")
-    )
-
-    SnapshotPaths.failures_path = Path(
-        _get_option(pytestconfig, "playwright_visual_snapshot_failures_path", cast=str)
-        or (root_dir / "snapshot_failures")
-    )
+    # Fetch the configured failures path using pytest-plugin-utils logic, falling back to a default
+    failures_base_dir = get_pytest_option(
+        NAMESPACE,
+        pytestconfig,
+        "playwright_visual_snapshot_failures_path",
+        type_hint=Path,
+    ) or Path("snapshot_failures")
+    
+    if not failures_base_dir.is_absolute():
+        failures_base_dir = root_dir / failures_base_dir
 
     # Clean up the entire failures directory at session start so past failures don't clutter the result
     # ignore_errors=True to gracefully fail in the case of multiple pytest processes (xdist)
-    shutil.rmtree(SnapshotPaths.failures_path, ignore_errors=True)
-
+    shutil.rmtree(failures_base_dir, ignore_errors=True)
+    
     # Create the directory to ensure it exists
-    SnapshotPaths.failures_path.mkdir(parents=True, exist_ok=True)
+    failures_base_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.debug(f"Snapshot failures path: {SnapshotPaths.failures_path.resolve()}")
-    logger.debug(f"Snapshots path: {SnapshotPaths.snapshots_path.resolve()}")
+    logger.debug(f"Snapshot failures path: {failures_base_dir.resolve()}")
+    
+    # Also log the root snapshots path for debugging purposes
+    snapshots_base_dir = get_pytest_option(
+        NAMESPACE,
+        pytestconfig,
+        "playwright_visual_snapshots_path",
+        type_hint=Path,
+    ) or Path("__snapshots__")
+    
+    if not snapshots_base_dir.is_absolute():
+        snapshots_base_dir = root_dir / snapshots_base_dir
+    logger.debug(f"Snapshots path: {snapshots_base_dir.resolve()}")
 
     yield
 
@@ -183,47 +205,75 @@ class AssertSnapshot:
         request: FixtureRequest,
         failures: List[str],
     ) -> None:
+        self._pytestconfig = pytestconfig
+        self._request = request
+        
         test_function_name = request.node.name
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
         self._test_name = f"{test_function_name}[{str(sys.platform)}]"
 
-        self._current_test_file_path = Path(request.node.fspath)
+        # Resolve base directories for artifacts
+        root_dir = Path(pytestconfig.rootdir)  # type: ignore
+        
+        snapshots_base_dir = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_snapshots_path",
+            type_hint=Path,
+        ) or Path("__snapshots__")
+        if not snapshots_base_dir.is_absolute():
+            snapshots_base_dir = root_dir / snapshots_base_dir
+        self._snapshots_base_dir = snapshots_base_dir
 
-        # Use global paths if available, otherwise calculate per test
-        self._snapshots_path = SnapshotPaths.snapshots_path
-        assert self._snapshots_path
+        failures_base_dir = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_snapshot_failures_path",
+            type_hint=Path,
+        ) or Path("snapshot_failures")
+        if not failures_base_dir.is_absolute():
+            failures_base_dir = root_dir / failures_base_dir
+        self._failures_base_dir = failures_base_dir
 
-        self._snapshot_failures_path = SnapshotPaths.failures_path
-        assert self._snapshot_failures_path
-
-        # we know this exists because of the default value on ini
-        raw_global_snapshot_threshold = _get_option(
-            pytestconfig, "playwright_visual_snapshot_threshold", cast=str
+        # Retrieve and cast configuration options from pytest-plugin-utils
+        # These can come from pytest.ini, pyproject.toml, or CLI flags
+        self._global_snapshot_threshold = float(
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_snapshot_threshold",
+                type_hint=str,
+            )
         )
-        assert raw_global_snapshot_threshold
-        self._global_snapshot_threshold = float(raw_global_snapshot_threshold)
 
-        self._mask_selectors = (
-            _get_option(pytestconfig, "playwright_visual_snapshot_masks", cast=None)
-            or []
+        self._mask_selectors = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_snapshot_masks",
+            type_hint=list[str],
         )
-        self._update_snapshot = (
-            _get_option(pytestconfig, "update_snapshots", cast=bool) or False
+        self._update_snapshot = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "update_snapshots",
+            type_hint=bool,
         )
-        self._ignore_size_diff = (
-            _get_option(pytestconfig, "playwright_visual_ignore_size_diff", cast=bool)
-            or False
+        self._ignore_size_diff = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_ignore_size_diff",
+            type_hint=bool,
         )
-
-        self._disable_snapshots = (
-            _get_option(pytestconfig, "playwright_visual_disable_snapshots", cast=bool)
-            or False
+        self._disable_snapshots = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_disable_snapshots",
+            type_hint=bool,
         )
 
         self._failures = failures
-
         self._warned_disabled = False
         self._counter = 0
 
@@ -281,26 +331,11 @@ class AssertSnapshot:
         else:
             img = img_or_page
 
-        # test file without the extension
-        test_file_name_without_extension = self._current_test_file_path.stem
-
-        # Created a nested folder to store screenshots: snapshot/test_file_name/test_name/
-        test_file_snapshot_dir = (
-            self._snapshots_path
-            / test_file_name_without_extension
-            / self._test_name_without_params
-        )
-        test_file_snapshot_dir.mkdir(parents=True, exist_ok=True)
-
-        screenshot_file = test_file_snapshot_dir / name
-
-        # Create a dir where all snapshot test failures will go
-        # ex: snapshot_failures/test_file_name/test_name
-        failure_results_dir = (
-            self._snapshot_failures_path
-            / test_file_name_without_extension
-            / self._test_name
-        )
+        # Use get_artifact_dir to automatically create a collision-free path for the current test
+        # e.g., <snapshots_dir>/<sanitized-test-node-id>
+        # Creation is deferred until here to avoid creating directories when snapshots are disabled
+        snapshot_dir = get_artifact_dir(self._request.node, self._snapshots_base_dir, create=True)
+        screenshot_file = snapshot_dir / name
 
         # increment counter before any failures are recorded
         self._counter += 1
@@ -340,11 +375,13 @@ class AssertSnapshot:
                 f"Image size mismatch detected: {e}. Continuing with failure generation."
             )
 
-        # Create new test_results folder
-        failure_results_dir.mkdir(parents=True, exist_ok=True)
-        img_diff.save(f"{failure_results_dir}/diff_{name}")
-        img_a.save(f"{failure_results_dir}/actual_{name}")
-        img_b.save(f"{failure_results_dir}/expected_{name}")
+        # Create new failure results folder if needed
+        # We set create=True to ensure the directory is created before we try to write to it
+        failure_dir = get_artifact_dir(self._request.node, self._failures_base_dir, create=True)
+        
+        img_diff.save(f"{failure_dir}/diff_{name}")
+        img_a.save(f"{failure_dir}/actual_{name}")
+        img_b.save(f"{failure_dir}/expected_{name}")
 
         # on ci, update the existing screenshots in place so we can download them
         if is_ci_environment():
