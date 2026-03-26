@@ -9,7 +9,7 @@ dependencies = [
     "pillow>=11.1.0",
     "pixelmatch>=0.3.0",
     "pytest-playwright>=0.7.0",
-    "pytest-plugin-utils>=0.2.0",
+    "pytest-plugin-utils>=0.3.0",
 ]
 authors = [{ name = "Michael Bianco", email = "mike@mikebian.co" }]
 urls = { "Repository" = "https://github.com/iloveitaly/pytest-playwright-visual-snapshot" }
@@ -25,7 +25,7 @@ package = true
 addopts = "-p no:playwright --runpytest subprocess -vv --cov --cov-report=term-missing --cov-report=html:tmp/htmlcov"
 
 [build-system]
-requires = ["uv_build>=0.10.0,<0.11"]
+requires = ["uv_build>=0.11.0,<0.12"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
