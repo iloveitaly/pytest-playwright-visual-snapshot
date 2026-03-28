@@ -96,6 +96,15 @@ def pytest_addoption(parser: Parser) -> None:
 
     set_pytest_option(
         NAMESPACE,
+        "playwright_kwargs",
+        default={},
+        help="Dictionary of kwargs to pass to Playwright's screenshot method",
+        available=None,  # Runtime only
+        type_hint=dict,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
         "update_snapshots",
         default=False,
         help="Update snapshots",
@@ -258,6 +267,15 @@ class AssertSnapshot:
             )
             or []
         )
+        self._playwright_kwargs = (
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_kwargs",
+                type_hint=dict,
+            )
+            or {}
+        )
         self._update_snapshot = bool(
             get_pytest_option(
                 NAMESPACE,
@@ -329,15 +347,16 @@ class AssertSnapshot:
                 else []
             )
 
-            img = img_or_page.screenshot(
-                animations="disabled",
+            screenshot_kwargs: dict[str, Any] = {
+                "animations": "disabled",
                 # "css" scale makes tests reproducable on high-DPI devices
-                scale="css",
-                type="png",
-                mask=masks,
-                # TODO only for jpeg
-                # quality=100,
-            )
+                "scale": "css",
+                "type": "png",
+                "mask": masks,
+                **self._playwright_kwargs,
+            }
+
+            img = img_or_page.screenshot(**screenshot_kwargs)
         else:
             img = img_or_page
 

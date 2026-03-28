@@ -127,6 +127,18 @@ When enabled, snapshots with different dimensions will still generate the `actua
 
 **Example use-case:** You're testing a UI component and update the button padding. Without `--ignore-size-diff`, you'd just get an exception. With it enabled, you get visual diff images showing the padding changes, making it easy to review and decide if the changes are intentional.
 
+### Customizing Screenshot Arguments
+
+You can pass a dictionary of extra keyword arguments to Playwright's `screenshot` method via `playwright_kwargs`. This allows you to use any Playwright-supported screenshot option (like `full_page`, `clip`, `quality`, etc.).
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_kwargs = {
+        "full_page": True,
+        "clip": {"x": 0, "y": 0, "width": 800, "height": 600}
+    }
+```
+
 ### Disabling Visual Snapshots Locally
 
 If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
