@@ -235,3 +235,74 @@ def test_actual_expected_diff_images_generated(
     assert actual_img.exists(), assert_file_exists_message(actual_img)
     assert expected_img.exists(), assert_file_exists_message(expected_img)
     assert diff_img.exists(), assert_file_exists_message(diff_img)
+
+
+def test_snapshot_name_extension_handling(testdir: pytest.Testdir) -> None:
+    """Test that snapshot names are correctly appended with .png if missing or invalid."""
+    testdir.makepyfile(
+        """
+        import pytest
+        from PIL import Image
+        from io import BytesIO
+
+        def test_extensions(assert_snapshot):
+            img = Image.new("RGB", (10, 10), color="red")
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            data = buf.getvalue()
+            
+            # These should all have .png appended (or preserved if valid)
+            assert_snapshot(data, name="no_ext")
+            assert_snapshot(data, name="with_dot.middle")
+            assert_snapshot(data, name="trailing_dot.")
+            assert_snapshot(data, name="valid.png")
+            assert_snapshot(data, name="valid.jpg")
+        """
+    )
+    snapshots_dir = get_snapshots_dir(testdir)
+
+    result = testdir.runpytest()
+    # 5 snapshots created
+    result.assert_outcomes(passed=1, errors=1)
+
+    snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
+
+    expected_files = [
+        "no_ext.png",
+        "with_dot.middle.png",
+        "trailing_dot..png",
+        "valid.png",
+        "valid.jpg",
+    ]
+
+    for filename in expected_files:
+        filepath = snapshot_dir / filename
+        assert filepath.exists(), f"Expected snapshot file {filename} was not created"
+
+
+def test_default_name_has_extension(testdir: pytest.Testdir) -> None:
+    """Test that the default generated snapshot name has a .png extension."""
+    testdir.makepyfile(
+        """
+        import pytest
+        from PIL import Image
+        from io import BytesIO
+
+        def test_default_name(assert_snapshot):
+            img = Image.new("RGB", (10, 10), color="red")
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            assert_snapshot(buf.getvalue())
+        """
+    )
+    snapshots_dir = get_snapshots_dir(testdir)
+    testdir.runpytest()
+
+    snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
+    # The filename should end with .png
+    found_png = False
+    for file in snapshot_dir.glob("*"):
+        if file.suffix == ".png":
+            found_png = True
+            break
+    assert found_png, f"No .png file found in {snapshot_dir}"

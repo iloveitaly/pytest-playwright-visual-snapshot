@@ -328,6 +328,10 @@ class AssertSnapshot:
                 name = f"{self._test_name}_{self._counter}.png"
             else:
                 name = f"{self._test_name}.png"
+        else:
+            _, ext = os.path.splitext(name)
+            if ext.lower() not in [".png", ".jpg", ".jpeg", ".webp"]:
+                name = f"{name}.png"
 
         # Use global threshold if no local threshold provided
         if not threshold:
