@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.5.1...v0.6.0) (2026-03-30)
+
+
+### Features
+
+* add playwright installation to setup task ([3b8b306](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/3b8b3061ba3c6026b72ca9c49aea4bf8c4efc5f8))
+* migrate tool management to mise and add coverage configuration ([56edcdf](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/56edcdf910f78171216baacbc1dd27f78cbcd24c))
+* support custom Playwright screenshot arguments ([fa48e1b](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/fa48e1b78d1905ceb6b3cb29fc69389bb369e380))
+
+
+### Bug Fixes
+
+* ensure snapshot files have valid image extensions ([1608ae9](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/1608ae992a4a6fd94e4124b25e08fe8158a92708))
+
+
+### Documentation
+
+* add guidelines for visual snapshot testing ([6081885](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/commit/60818859b8d677225f81300593cef69e32469afc))
+
 ## [0.5.1](https://github.com/iloveitaly/pytest-playwright-visual-snapshot/compare/v0.5.0...v0.5.1) (2026-02-05)
 
 
