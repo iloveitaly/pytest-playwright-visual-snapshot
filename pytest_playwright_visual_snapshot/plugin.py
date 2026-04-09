@@ -96,7 +96,7 @@ def pytest_addoption(parser: Parser) -> None:
 
     set_pytest_option(
         NAMESPACE,
-        "playwright_kwargs",
+        "playwright_visual_screenshot_kwargs",
         default={},
         help="Dictionary of kwargs to pass to Playwright's screenshot method",
         available=None,  # Runtime only
@@ -267,11 +267,11 @@ class AssertSnapshot:
             )
             or []
         )
-        self._playwright_kwargs = (
+        self._screenshot_kwargs = (
             get_pytest_option(
                 NAMESPACE,
                 pytestconfig,
-                "playwright_kwargs",
+                "playwright_visual_screenshot_kwargs",
                 type_hint=dict,
             )
             or {}
@@ -357,7 +357,7 @@ class AssertSnapshot:
                 "scale": "css",
                 "type": "png",
                 "mask": masks,
-                **self._playwright_kwargs,
+                **self._screenshot_kwargs,
             }
 
             img = img_or_page.screenshot(**screenshot_kwargs)
