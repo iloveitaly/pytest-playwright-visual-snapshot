@@ -105,7 +105,7 @@ def pytest_addoption(parser: Parser) -> None:
 
     set_pytest_option(
         NAMESPACE,
-        "update_snapshots",
+        "playwright_visual_update_snapshots",
         default=False,
         help="Update snapshots",
         available=None,  # Handled manually below
@@ -120,7 +120,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--update-snapshots",
         action="store_true",
         default=None,
-        dest="update_snapshots",
+        dest="playwright_visual_update_snapshots",
         help="Update snapshots.",
     )
 
@@ -280,7 +280,7 @@ class AssertSnapshot:
             get_pytest_option(
                 NAMESPACE,
                 pytestconfig,
-                "update_snapshots",
+                "playwright_visual_update_snapshots",
                 type_hint=bool,
             )
         )
