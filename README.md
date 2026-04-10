@@ -129,11 +129,11 @@ When enabled, snapshots with different dimensions will still generate the `actua
 
 ### Customizing Screenshot Arguments
 
-You can pass a dictionary of extra keyword arguments to Playwright's `screenshot` method via `playwright_kwargs`. This allows you to use any Playwright-supported screenshot option (like `full_page`, `clip`, `quality`, etc.).
+You can pass a dictionary of extra keyword arguments to Playwright's `screenshot` method via `playwright_visual_screenshot_kwargs`. This allows you to use any Playwright-supported screenshot option (like `full_page`, `clip`, `quality`, etc.).
 
 ```python
 def pytest_configure(config: Config):
-    config.option.playwright_kwargs = {
+    config.option.playwright_visual_screenshot_kwargs = {
         "full_page": True,
         "clip": {"x": 0, "y": 0, "width": 800, "height": 600}
     }

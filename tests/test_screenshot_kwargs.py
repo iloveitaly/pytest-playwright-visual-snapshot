@@ -7,11 +7,11 @@ from tests.conftest import (
 )
 
 
-def test_playwright_kwargs_clip(testdir: pytest.Testdir) -> None:
+def test_screenshot_kwargs_clip(testdir: pytest.Testdir) -> None:
     testdir.makeconftest(
         """
         def pytest_configure(config):
-            config.option.playwright_kwargs = {
+            config.option.playwright_visual_screenshot_kwargs = {
                 "clip": {"x": 0, "y": 0, "width": 50, "height": 50}
             }
         """
