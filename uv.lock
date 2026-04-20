@@ -1815,15 +1815,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/ad/70/be318554495555eba
 
 [[package]]
 name = "uv-development-toggle"
-version = "0.6.4"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "tomlkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/e9/c0e3cd4d9110e361d70175609295eb973d4692aa7cb1619d59233716473c/uv_development_toggle-0.6.4.tar.gz", hash = "sha256:4775322206de45630ba0c3deef8d7e32f545cf3ba2d6b8e0719708be80cc5ed3", size = 6617, upload-time = "2026-04-06T19:13:01.794Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/1c/328fba26c3d652e05d15aff474730014562c7a3028baa0df724b7b1299f5/uv_development_toggle-0.7.0.tar.gz", hash = "sha256:3014bf0c11161ea3640bfc0a3482014b634a3bfea77e2fc16452f0f911e7cc87", size = 6841, upload-time = "2026-04-17T22:30:45.905Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/50/7dd1752fde995f4c6a891ca0c1b92aab987fced54644b56782a775e9b051/uv_development_toggle-0.6.4-py3-none-any.whl", hash = "sha256:7d43541964f2dcdd33c6b1d235cd00dd93d0664c3def270d41a35dab1e582b4b", size = 8503, upload-time = "2026-04-06T19:13:00.78Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/37/8c073f6b50ed1a8478939cb496b078bee4d1dda835b47c12d8b61ff65b8f/uv_development_toggle-0.7.0-py3-none-any.whl", hash = "sha256:ec0f29f65591ecd9e157b25c3e75922489d907b3a1ca123496d0a078009f4dac", size = 8742, upload-time = "2026-04-17T22:30:46.7Z" },
 ]
 
 [[package]]
