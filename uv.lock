@@ -622,14 +622,14 @@ wheels = [
 
 [[package]]
 name = "ipython-suggestions"
-version = "1.0.3"
+version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ipython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/4b/36e0fb6f34d2996ba73d45dddcf9fc6015ed5e5629bafdfc330ebcabdea0/ipython_suggestions-1.0.3.tar.gz", hash = "sha256:19a7de6e66a9dbc00484ddf3036a09a5a0d91fca82e861ae21b2174b5b1268d2", size = 15268, upload-time = "2025-06-26T09:43:27.348Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/95/13798a1427f8c4827a48c86981c49728835f86252a3eb23fe04cb01e6cfa/ipython_suggestions-1.0.4.tar.gz", hash = "sha256:d8fa732d06e4d8ce38eefc855112e237f7125f399cf91a8f99b490aa4bf1fb24", size = 16137, upload-time = "2026-05-04T09:27:01.558Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/14/f5f18170bad0f528842d9f7e2d06d97e7d30e5d952ceb14119db0181be8e/ipython_suggestions-1.0.3-py3-none-any.whl", hash = "sha256:b65c270e16617d05fdf83302f9b15d51d0c8dec867e742b82c09df5513fac369", size = 15754, upload-time = "2025-06-26T09:43:26.083Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/1b/791eecdee57dbbdf63e0a258ecd0b6b1c21a82ce04a0148ad47943baf3fb/ipython_suggestions-1.0.4-py3-none-any.whl", hash = "sha256:6fa233c5c5b6f93e2778f701bbc8bfe0e22370e6d25b457297ec3c3be970102d", size = 16702, upload-time = "2026-05-04T09:27:00.061Z" },
 ]
 
 [[package]]
