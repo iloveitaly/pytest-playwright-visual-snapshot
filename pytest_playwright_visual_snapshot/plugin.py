@@ -403,8 +403,14 @@ class AssertSnapshot:
         except ValueError as e:
             # Raised when image sizes differ
             if not self._ignore_size_diff:
-                # Re-raise the exception if size differences should not be ignored
-                raise
+                self._failures.append(
+                    f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
+                )
+                if fail_fast:
+                    pytest.fail(
+                        f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
+                    )
+                return
             # Otherwise, continue generating failure results
             logger.debug(
                 f"Image size mismatch detected: {e}. Continuing with failure generation."

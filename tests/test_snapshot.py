@@ -147,6 +147,64 @@ def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
 
 @pytest.mark.parametrize(
     "browser_name",
+    ["chromium"],
+)
+def test_size_mismatch_fails_gracefully(
+    browser_name: str, testdir: pytest.Testdir
+) -> None:
+    """Test that snapshot comparison fails gracefully as a mismatch when image sizes differ."""
+    testdir.makepyfile(
+        """
+        import pytest
+        from PIL import Image
+        from io import BytesIO
+
+        def test_snapshot(assert_snapshot):
+            # Create a 10x10 image
+            img = Image.new("RGB", (10, 10), color="red")
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            assert_snapshot(buf.getvalue())
+        """
+    )
+    snapshots_dir = get_snapshots_dir(testdir)
+
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(
+        passed=1, errors=1
+    )  # Test passes but has teardown error for new snapshot
+
+    # Overwrite the expected snapshot with a different sized image
+    snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
+    filepath = (
+        snapshot_dir / get_expected_filename("test_snapshot", browser_name)
+    ).resolve()
+
+    assert filepath.exists()
+
+    from PIL import Image
+    from io import BytesIO
+
+    # Create a 20x20 image to cause a size mismatch
+    img_large = Image.new("RGB", (20, 20), color="blue")
+    buf_large = BytesIO()
+    img_large.save(buf_large, format="PNG")
+    filepath.write_bytes(buf_large.getvalue())
+
+    # Run again, it should fail gracefully as a mismatch
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(
+        passed=1, failed=0, errors=1
+    )  # Test passes but has teardown error
+
+    # Ensure it's not a crash but a graceful mismatch error
+    output = "".join(result.outlines)
+    assert "[playwright-visual-snapshot] Snapshots DO NOT match!" in output
+    assert "Image sizes do not match" in output
+
+
+@pytest.mark.parametrize(
+    "browser_name",
     ["firefox", "webkit"],
 )
 def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> None:
