@@ -205,6 +205,70 @@ def test_size_mismatch_fails_gracefully(
 
 @pytest.mark.parametrize(
     "browser_name",
+    ["chromium"],
+)
+def test_size_mismatch_updates_snapshot_on_ci(
+    browser_name: str, testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that on CI, the baseline snapshot is updated in-place even when image sizes differ.
+
+    Regression test: the early return on size mismatch was skipping the CI screenshot
+    update, so `just py_playwright_visual-download` would download unmodified baselines.
+    """
+    testdir.makepyfile(
+        """
+        import pytest
+        from PIL import Image
+        from io import BytesIO
+
+        def test_snapshot(assert_snapshot):
+            img = Image.new("RGB", (10, 10), color="red")
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            assert_snapshot(buf.getvalue())
+        """
+    )
+    snapshots_dir = get_snapshots_dir(testdir)
+
+    # Create the initial baseline snapshot
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(passed=1, errors=1)
+
+    snapshot_dir = assert_single_snapshot_dir(snapshots_dir)
+    filepath = (
+        snapshot_dir / get_expected_filename("test_snapshot", browser_name)
+    ).resolve()
+    assert filepath.exists()
+
+    # Replace baseline with a differently-sized image
+    from PIL import Image
+    from io import BytesIO
+
+    img_large = Image.new("RGB", (20, 20), color="blue")
+    buf_large = BytesIO()
+    img_large.save(buf_large, format="PNG")
+    original_bytes = buf_large.getvalue()
+    filepath.write_bytes(original_bytes)
+
+    # Run as if on CI — the snapshot file should be overwritten with the actual image
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    result = testdir.runpytest("--browser", browser_name)
+    result.assert_outcomes(passed=1, errors=1)
+
+    output = "".join(result.outlines)
+    assert "Image sizes do not match" in output
+
+    # The baseline must now contain the actual (10x10 red) image, not the old 20x20 blue one
+    updated_bytes = filepath.read_bytes()
+    assert updated_bytes != original_bytes, (
+        "Snapshot file was not updated on CI during size mismatch"
+    )
+    updated_img = Image.open(BytesIO(updated_bytes))
+    assert updated_img.size == (10, 10)
+
+
+@pytest.mark.parametrize(
+    "browser_name",
     ["firefox", "webkit"],
 )
 def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> None:

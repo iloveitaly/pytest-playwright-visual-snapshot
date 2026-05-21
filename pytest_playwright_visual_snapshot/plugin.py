@@ -406,6 +406,9 @@ class AssertSnapshot:
                 self._failures.append(
                     f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
                 )
+                # on ci, update the existing screenshots in place so we can download them
+                if is_ci_environment():
+                    screenshot_file.write_bytes(img)
                 if fail_fast:
                     pytest.fail(
                         f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
