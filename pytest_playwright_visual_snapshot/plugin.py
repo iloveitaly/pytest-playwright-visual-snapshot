@@ -2,16 +2,15 @@ import logging
 import os
 import shutil
 import sys
-from io import BytesIO
 from pathlib import Path
 from typing import Any, List, TypeVar, Union
 
 import pytest
 from PIL import Image
-from pixelmatch.contrib.PIL import pixelmatch
 from playwright.sync_api import Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
+from .matchers import get_matcher
 from pytest_plugin_utils import (
     get_artifact_dir,
     get_pytest_option,
@@ -92,6 +91,15 @@ def pytest_addoption(parser: Parser) -> None:
         help="Disable visual snapshot comparisons",
         available="ini",
         type_hint=bool,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        "playwright_visual_matcher",
+        default="pixelmatch",
+        help="Image matcher to use for visual comparison (e.g. 'pixelmatch')",
+        available="ini",
+        type_hint=str,
     )
 
     set_pytest_option(
@@ -301,6 +309,17 @@ class AssertSnapshot:
             )
         )
 
+        matcher_name = (
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_matcher",
+                type_hint=str,
+            )
+            or "pixelmatch"
+        )
+        self._matcher = get_matcher(matcher_name)
+
         self._failures = failures
         self._warned_disabled = False
         self._counter = 0
@@ -389,51 +408,47 @@ class AssertSnapshot:
             )
             return
 
-        img_a = Image.open(BytesIO(img))
-        img_b = Image.open(screenshot_file)
-        img_diff = Image.new("RGBA", img_a.size)
-
-        mismatch = 0
-        try:
-            mismatch = pixelmatch(
-                img_a, img_b, img_diff, threshold=threshold, fail_fast=fail_fast
-            )
-            if mismatch == 0:
-                return
-        except ValueError as e:
-            # Raised when image sizes differ
-            if not self._ignore_size_diff:
-                self._failures.append(
-                    f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
-                )
-                # on ci, update the existing screenshots in place so we can download them
-                if is_ci_environment():
-                    screenshot_file.write_bytes(img)
-                if fail_fast:
-                    pytest.fail(
-                        f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name} (Image sizes do not match: {img_a.size} vs {img_b.size})"
-                    )
-                return
-            # Otherwise, continue generating failure results
-            logger.debug(
-                f"Image size mismatch detected: {e}. Continuing with failure generation."
-            )
-
-        # Create new failure results folder if needed
-        # We set create=True to ensure the directory is created before we try to write to it
         failure_dir = get_artifact_dir(
             self._request.node, self._failures_base_dir, create=True
         )
+        actual_path = failure_dir / f"actual_{name}"
+        actual_path.write_bytes(img)
 
-        img_diff.save(f"{failure_dir}/diff_{name}")
-        img_a.save(f"{failure_dir}/actual_{name}")
+        result = self._matcher.compare(
+            baseline_path=screenshot_file,
+            actual_path=actual_path,
+            diff_output_path=failure_dir / f"diff_{name}",
+            threshold=threshold,
+            fail_fast=fail_fast,
+        )
+
+        if result.matched:
+            actual_path.unlink(missing_ok=True)
+            return
+
+        if result.size_mismatch and not self._ignore_size_diff:
+            msg = (
+                f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}"
+                f" (Image sizes do not match: {result.actual_size} vs {result.baseline_size})"
+            )
+            self._failures.append(msg)
+            if is_ci_environment():
+                screenshot_file.write_bytes(img)
+            if fail_fast:
+                pytest.fail(msg)
+            return
+
+        if result.size_mismatch:
+            logger.debug(
+                "Image size mismatch detected, continuing with failure generation."
+            )
+
+        img_b = Image.open(screenshot_file)
         img_b.save(f"{failure_dir}/expected_{name}")
 
-        # on ci, update the existing screenshots in place so we can download them
         if is_ci_environment():
             screenshot_file.write_bytes(img)
 
-        # Still honor fail_fast if specifically requested
         if fail_fast:
             pytest.fail(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
 
