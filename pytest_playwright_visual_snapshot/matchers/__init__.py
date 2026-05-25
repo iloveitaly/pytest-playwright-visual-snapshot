@@ -1,8 +1,10 @@
 from .base import ImageMatcher, MatchResult
+from .odiff_matcher import ODiffBinaryNotFoundError, ODiffMatcher
 from .pixelmatch_matcher import PixelmatchMatcher
 
 _REGISTRY: dict[str, ImageMatcher] = {
     "pixelmatch": PixelmatchMatcher(),
+    "odiff": ODiffMatcher(),
 }
 
 
@@ -16,4 +18,11 @@ def get_matcher(name: str) -> ImageMatcher:
         ) from None
 
 
-__all__ = ["ImageMatcher", "MatchResult", "PixelmatchMatcher", "get_matcher"]
+__all__ = [
+    "ImageMatcher",
+    "MatchResult",
+    "ODiffBinaryNotFoundError",
+    "ODiffMatcher",
+    "PixelmatchMatcher",
+    "get_matcher",
+]
