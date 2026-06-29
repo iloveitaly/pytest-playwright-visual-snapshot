@@ -278,7 +278,7 @@ wheels = [
 
 [[package]]
 name = "datamodel-code-generator"
-version = "0.65.0"
+version = "0.66.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argcomplete" },
@@ -290,9 +290,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/28/02b8ce032f6cd68d530519e0c3570616c7ba28aad377cb19059001f5ef3b/datamodel_code_generator-0.65.0.tar.gz", hash = "sha256:ccad880007104f5cc462d9f880183fb1ed54f4d8106a3a2ad578861d16548432", size = 1393169, upload-time = "2026-06-21T18:21:06.537Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/0c/3993ffaa7cd860a188ab9ad95a42786996c391f5d95b3d35fdd88bf70420/datamodel_code_generator-0.66.0.tar.gz", hash = "sha256:94d0cfcdb195df2ed30d54ec316529c11fb833df63813321ce5151662496756d", size = 1417080, upload-time = "2026-06-26T14:47:03.766Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/dd/8e7254f0117a7599622f0509741c1a051946442bf6bc2135df645b6e5d8f/datamodel_code_generator-0.65.0-py3-none-any.whl", hash = "sha256:2fe413a46932dae930be069b951818a228815cd3056a478527ecc9369a831b60", size = 401994, upload-time = "2026-06-21T18:21:04.891Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/34/ff212c3b295247a615f54beb37420618ddeb3fc08d71669ec73b2740cecd/datamodel_code_generator-0.66.0-py3-none-any.whl", hash = "sha256:cced93f8b9cfb9bbd4dce6fbb722b89aa37627a6af135300f45608e555b27f36", size = 407786, upload-time = "2026-06-26T14:47:01.864Z" },
 ]
 
 [[package]]
