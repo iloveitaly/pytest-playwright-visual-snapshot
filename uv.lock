@@ -450,11 +450,11 @@ wheels = [
 
 [[package]]
 name = "httpdbg"
-version = "2.1.7"
+version = "2.1.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b5/a2/5ccf3dab272bf8b07b5211da5748bec75b231d7c3471afd8f7f2a399289d/httpdbg-2.1.7.tar.gz", hash = "sha256:6ee7db35ad4d5d71cc75b1d5088567e4f71a65b987dfd934c8ac7d1d6cb6cc26", size = 80657, upload-time = "2026-05-01T10:34:34.343Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/8e/c7220ffe0c0b88857c5a074b567482141b4cd2a0a688d1d7466eaa70621f/httpdbg-2.1.8.tar.gz", hash = "sha256:2752488c3e4ad02ac390716c02ff8bf588a1d9bbcd645b76274ca64260bf6418", size = 80664, upload-time = "2026-07-11T07:19:47.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/c4/46ab6052e3cae4489087b3c8bda83bc8b4911a126339cdd249f72fb6ab30/httpdbg-2.1.7-py3-none-any.whl", hash = "sha256:e29578bfdca82361805adc19938e64fcabcf5029a9c9783757b1ffac2a4dc2f8", size = 87966, upload-time = "2026-05-01T10:34:32.707Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/e9/e81dcef00be5227f063abe969a372a8c81ec22ed45701452eece09a249c3/httpdbg-2.1.8-py3-none-any.whl", hash = "sha256:db2ba48a2dac458b24a103056882637d8d558d9368daa408e1bdf4ba55ba0138", size = 87962, upload-time = "2026-07-11T07:19:45.831Z" },
 ]
 
 [[package]]
