@@ -62,8 +62,8 @@ View all configuration options by running `pytest --help`. Here's a quick exampl
 ```python
 # NOTE this runs on any pytest invocation, even if no tests are run
 def pytest_configure(config: Config):
-  config.option.playwright_visual_snapshots_path = Path("...")
-  config.option.playwright_visual_snapshot_failures_path = Path("...")
+    config.option.playwright_visual_snapshots_path = Path("...")
+    config.option.playwright_visual_snapshot_failures_path = Path("...")
 ```
 
 ### Masking Elements
@@ -86,8 +86,8 @@ Or directly via `pytest_configure`:
 def pytest_configure(config: Config):
     config.option.playwright_visual_snapshot_masks = [
         '[data-clerk-component="UserButton"]',
-        '.timestamp',
-        '#dynamic-content'
+        ".timestamp",
+        "#dynamic-content",
     ]
 ```
 
@@ -135,7 +135,7 @@ You can pass a dictionary of extra keyword arguments to Playwright's `screenshot
 def pytest_configure(config: Config):
     config.option.playwright_visual_screenshot_kwargs = {
         "full_page": True,
-        "clip": {"x": 0, "y": 0, "width": 800, "height": 600}
+        "clip": {"x": 0, "y": 0, "width": 800, "height": 600},
     }
 ```
 

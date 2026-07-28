@@ -1,6 +1,6 @@
-import sys
 import os
 import pathlib
+import sys
 
 pytest_plugins = "pytester"
 
