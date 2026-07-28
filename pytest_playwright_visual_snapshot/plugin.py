@@ -3,20 +3,21 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, List, TypeVar, Union
+from typing import Any, TypeVar
 
 import pytest
 from PIL import Image
 from playwright.sync_api import Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
-from .matchers import get_matcher
 from pytest_plugin_utils import (
     get_artifact_dir,
     get_pytest_option,
     register_pytest_options,
     set_pytest_option,
 )
+
+from .matchers import get_matcher
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -153,7 +154,7 @@ def test_name_without_parameters(test_name: str) -> str:
     return test_name.split("[", 1)[0]
 
 
-def _create_locators_from_selectors(page: SyncPage | Locator, selectors: List[str]):
+def _create_locators_from_selectors(page: SyncPage | Locator, selectors: list[str]):
     """
     Convert a list of CSS selector strings to locator objects
     """
@@ -220,7 +221,7 @@ class AssertSnapshot:
         self,
         pytestconfig: Config,
         request: FixtureRequest,
-        failures: List[str],
+        failures: list[str],
     ) -> None:
         self._pytestconfig = pytestconfig
         self._request = request
@@ -229,7 +230,7 @@ class AssertSnapshot:
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
-        self._test_name = f"{test_function_name}[{str(sys.platform)}]"
+        self._test_name = f"{test_function_name}[{sys.platform!s}]"
 
         # Resolve base directories for artifacts
         root_dir = Path(pytestconfig.rootdir)  # type: ignore
@@ -326,12 +327,12 @@ class AssertSnapshot:
 
     def __call__(
         self,
-        img_or_page: Union[bytes, Any],
+        img_or_page: bytes | Any,
         *,
         threshold: float | None = None,
         name: str | None = None,
         fail_fast: bool = False,
-        mask_elements: List[str] | None = None,
+        mask_elements: list[str] | None = None,
     ) -> None:
         if self._disable_snapshots:
             if not self._warned_disabled:

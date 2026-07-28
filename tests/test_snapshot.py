@@ -182,8 +182,9 @@ def test_size_mismatch_fails_gracefully(
 
     assert filepath.exists()
 
-    from PIL import Image
     from io import BytesIO
+
+    from PIL import Image
 
     # Create a 20x20 image to cause a size mismatch
     img_large = Image.new("RGB", (20, 20), color="blue")
@@ -241,8 +242,9 @@ def test_size_mismatch_updates_snapshot_on_ci(
     assert filepath.exists()
 
     # Replace baseline with a differently-sized image
-    from PIL import Image
     from io import BytesIO
+
+    from PIL import Image
 
     img_large = Image.new("RGB", (20, 20), color="blue")
     buf_large = BytesIO()
