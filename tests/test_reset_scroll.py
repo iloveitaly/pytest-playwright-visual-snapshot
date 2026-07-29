@@ -56,7 +56,7 @@ def test_without_reset_scroll_differs_from_top(testdir: pytest.Testdir) -> None:
     )
 
     result = testdir.runpytest("--browser", "chromium")
-    result.assert_outcomes(failed=1)
-    assert "[playwright-visual-snapshot] Snapshot does not match" in "".join(
+    result.assert_outcomes(passed=1, errors=1)
+    assert "[playwright-visual-snapshot] Snapshots DO NOT match!" in "".join(
         result.outlines
     )
