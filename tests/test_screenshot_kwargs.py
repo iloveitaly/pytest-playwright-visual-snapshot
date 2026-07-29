@@ -1,5 +1,6 @@
 import pytest
 from PIL import Image
+
 from tests.conftest import (
     assert_single_snapshot_dir,
     get_expected_filename,
