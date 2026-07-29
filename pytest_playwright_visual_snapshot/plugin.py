@@ -333,6 +333,7 @@ class AssertSnapshot:
         name: str | None = None,
         fail_fast: bool = False,
         mask_elements: list[str] | None = None,
+        reset_scroll: bool = False,
     ) -> None:
         if self._disable_snapshots:
             if not self._warned_disabled:
@@ -379,6 +380,9 @@ class AssertSnapshot:
                 "mask": masks,
                 **self._screenshot_kwargs,
             }
+
+            if isinstance(img_or_page, SyncPage) and reset_scroll:
+                img_or_page.evaluate("window.scrollTo(0, 0)")
 
             img = img_or_page.screenshot(**screenshot_kwargs)
         else:
