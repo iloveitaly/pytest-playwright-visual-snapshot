@@ -165,6 +165,14 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
 - `fail_fast` - If `True`, will fail after first different pixel. `False` by default
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
+- `reset_scroll` - If `True`, scrolls the page to `(0, 0)` before capturing a `Page` screenshot. Useful when prior test actions leave the viewport scrolled. Default is `False`.
+
+```python
+def test_homepage(page, assert_snapshot: AssertSnapshot):
+    page.goto("https://example.com")
+    page.evaluate("window.scrollTo(0, 500)")
+    assert_snapshot(page, reset_scroll=True)
+```
 
 ### Command Line Options
 
