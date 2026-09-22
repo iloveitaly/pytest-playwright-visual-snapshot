@@ -143,6 +143,20 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
+Install that binary with mise, as [python-starter-template](https://github.com/iloveitaly/python-starter-template/pull/115) does in `.config/mise.dev.toml`:
+
+```toml
+[tools]
+"github:dmtrKovalenko/odiff" = "latest"
+```
+
+`mise install` puts `odiff` on `PATH`. Set `ODIFF_BIN` when the binary lives somewhere else. `brew install odiff` and `npm i -g odiff-bin` also provide it.
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_matcher = "odiff"
+```
+
 `threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. Two separate budgets decide how many differing pixels still count as a match. Leave both unset to require every pixel to match.
 
 `max_diff_percentage` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match. `max_diff_pixels` is an absolute cap: `1` allows a single differing pixel. When both are set, the diff has to sit inside both caps. Both apply to every matcher.
