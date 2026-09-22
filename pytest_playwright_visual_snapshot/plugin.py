@@ -17,7 +17,7 @@ from pytest_plugin_utils import (
     set_pytest_option,
 )
 
-from .matchers import get_matcher
+from .matchers import MatchResult, get_matcher
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -33,6 +33,18 @@ T = TypeVar("T")
 
 def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
+
+
+def diff_percentage_is_allowed(
+    result: MatchResult, max_diff_percentage: float | None
+) -> bool:
+    if max_diff_percentage is None or result.matched or result.size_mismatch:
+        return False
+
+    if result.diff_percentage is None:
+        return False
+
+    return result.diff_percentage < max_diff_percentage
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -101,6 +113,24 @@ def pytest_addoption(parser: Parser) -> None:
         help="Image matcher to use for visual comparison (e.g. 'pixelmatch')",
         available="ini",
         type_hint=str,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        "playwright_visual_odiff_antialiasing",
+        default=False,
+        help="Ignore antialiased pixels when using the odiff matcher",
+        available="ini",
+        type_hint=bool,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        "playwright_visual_max_diff_percentage",
+        default=None,
+        help="Percent of pixels allowed to differ, on a 0-100 scale (odiff diffPercentage)",
+        available="ini",
+        type_hint=float,
     )
 
     set_pytest_option(
@@ -309,6 +339,20 @@ class AssertSnapshot:
                 type_hint=bool,
             )
         )
+        self._odiff_antialiasing = bool(
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_odiff_antialiasing",
+                type_hint=bool,
+            )
+        )
+        self._max_diff_percentage = get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_max_diff_percentage",
+            type_hint=float,
+        )
 
         matcher_name = (
             get_pytest_option(
@@ -334,6 +378,8 @@ class AssertSnapshot:
         fail_fast: bool = False,
         mask_elements: list[str] | None = None,
         reset_scroll: bool = False,
+        max_diff_percentage: float | None = None,
+        antialiasing: bool | None = None,
     ) -> None:
         if self._disable_snapshots:
             if not self._warned_disabled:
@@ -357,6 +403,15 @@ class AssertSnapshot:
         # Use global threshold if no local threshold provided
         if not threshold:
             threshold = self._global_snapshot_threshold
+
+        if max_diff_percentage is None:
+            max_diff_percentage = self._max_diff_percentage
+
+        if antialiasing is None:
+            antialiasing = self._odiff_antialiasing
+
+        # fail_fast stops after the first pixel, so the percentage would be wrong.
+        compare_fail_fast = fail_fast if max_diff_percentage is None else False
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
@@ -418,17 +473,20 @@ class AssertSnapshot:
         )
         actual_path = failure_dir / f"actual_{name}"
         actual_path.write_bytes(img)
+        diff_path = failure_dir / f"diff_{name}"
 
         result = self._matcher.compare(
             baseline_path=screenshot_file,
             actual_path=actual_path,
-            diff_output_path=failure_dir / f"diff_{name}",
+            diff_output_path=diff_path,
             threshold=threshold,
-            fail_fast=fail_fast,
+            fail_fast=compare_fail_fast,
+            antialiasing=antialiasing,
         )
 
-        if result.matched:
+        if result.matched or diff_percentage_is_allowed(result, max_diff_percentage):
             actual_path.unlink(missing_ok=True)
+            diff_path.unlink(missing_ok=True)
             return
 
         if result.size_mismatch and not self._ignore_size_diff:

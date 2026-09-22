@@ -10,6 +10,8 @@ class MatchResult:
     baseline_size: tuple[int, int] | None = None
     actual_size: tuple[int, int] | None = None
     score: float | None = None
+    # Percent of pixels that differ, 0-100 (odiff's diffPercentage).
+    diff_percentage: float | None = None
 
 
 class ImageMatcher(Protocol):
@@ -23,4 +25,5 @@ class ImageMatcher(Protocol):
         *,
         threshold: float,
         fail_fast: bool = False,
+        antialiasing: bool = False,
     ) -> MatchResult: ...

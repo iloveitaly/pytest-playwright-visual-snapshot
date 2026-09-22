@@ -166,20 +166,25 @@ class ODiffMatcher:
         *,
         threshold: float,
         fail_fast: bool = False,
+        antialiasing: bool = False,
     ) -> MatchResult:
         server = self._ensure_server()
+        options: dict[str, Any] = {
+            "threshold": threshold,
+            "failOnLayoutDiff": True,
+        }
+        if antialiasing:
+            options["antialiasing"] = True
+
         result = server.compare(
             base=baseline_path,
             compare=actual_path,
             output=diff_output_path,
-            options={
-                "threshold": threshold,
-                "failOnLayoutDiff": True,
-            },
+            options=options,
         )
 
         if result.get("match") is True:
-            return MatchResult(matched=True, score=0.0)
+            return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
 
         reason = result.get("reason")
         if reason == "layout-diff":
@@ -192,6 +197,10 @@ class ODiffMatcher:
                 actual_size=Image.open(actual_path).size,
             )
         if reason == "pixel-diff":
-            return MatchResult(matched=False, score=float(result.get("diffCount", 0)))
+            return MatchResult(
+                matched=False,
+                score=float(result.get("diffCount", 0)),
+                diff_percentage=float(result["diffPercentage"]),
+            )
 
         raise RuntimeError(f"odiff returned unexpected result: {result!r}")

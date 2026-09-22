@@ -17,6 +17,7 @@ class PixelmatchMatcher:
         *,
         threshold: float,
         fail_fast: bool = False,
+        antialiasing: bool = False,
     ) -> MatchResult:
         img_actual = Image.open(actual_path)
         img_baseline = Image.open(baseline_path)
@@ -39,7 +40,14 @@ class PixelmatchMatcher:
             )
 
         if mismatch == 0:
-            return MatchResult(matched=True, score=0.0)
+            return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
+
+        width, height = img_actual.size
+        diff_percentage = mismatch / (width * height) * 100
 
         img_diff.save(diff_output_path)
-        return MatchResult(matched=False, score=float(mismatch))
+        return MatchResult(
+            matched=False,
+            score=float(mismatch),
+            diff_percentage=diff_percentage,
+        )

@@ -139,6 +139,23 @@ def pytest_configure(config: Config):
     }
 ```
 
+### odiff, antialiasing, and diff allowance
+
+`playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
+
+`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. The share of the image that may differ is separate: `playwright_visual_max_diff_percentage`, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` allows up to 0.01% of pixels to differ.
+
+pixelmatch already ignores antialiased pixels. odiff counts them unless `playwright_visual_odiff_antialiasing` is enabled.
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_matcher = "odiff"
+    config.option.playwright_visual_odiff_antialiasing = True
+    config.option.playwright_visual_max_diff_percentage = 0.01
+```
+
+`assert_snapshot(page, antialiasing=True, max_diff_percentage=0.01)` overrides those two settings for a single call.
+
 ### Disabling Visual Snapshots Locally
 
 If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
@@ -161,9 +178,11 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 ### Fixture Parameters
 
-- `threshold` - sets the threshold for the comparison of the screenshots:`0` to `1`. Default is `0.1`
+- `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
+- `max_diff_percentage` - percent of pixels allowed to differ, on a 0-100 scale. Unset requires an exact pixel match
+- `antialiasing` - for the odiff matcher, ignore antialiased pixels. Defaults to `playwright_visual_odiff_antialiasing`
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
-- `fail_fast` - If `True`, will fail after first different pixel. `False` by default
+- `fail_fast` - If `True`, will fail after first different pixel. `False` by default. Ignored when `max_diff_percentage` is set, because the percentage needs a full count
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
 - `reset_scroll` - If `True`, scrolls the page to `(0, 0)` before capturing a `Page` screenshot. Useful when prior test actions leave the viewport scrolled. Default is `False`.
 
