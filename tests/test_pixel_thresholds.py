@@ -42,43 +42,43 @@ def test_diff_is_within_allowance():
 
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=0.01, max_diff_pixels=None
+            pixel_diff, pixel_percentage_threshold=0.01, pixel_threshold=None
         )
         is True
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=0.005, max_diff_pixels=None
+            pixel_diff, pixel_percentage_threshold=0.005, pixel_threshold=None
         )
         is False
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=None, max_diff_pixels=None
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=None
         )
         is False
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=None, max_diff_pixels=1
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=1
         )
         is True
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=None, max_diff_pixels=0
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=0
         )
         is False
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=0.01, max_diff_pixels=0
+            pixel_diff, pixel_percentage_threshold=0.01, pixel_threshold=0
         )
         is False
     )
     assert (
         diff_is_within_allowance(
-            pixel_diff, max_diff_percentage=0.001, max_diff_pixels=5
+            pixel_diff, pixel_percentage_threshold=0.001, pixel_threshold=5
         )
         is False
     )
@@ -87,8 +87,8 @@ def test_diff_is_within_allowance():
             MatchResult(
                 matched=False, size_mismatch=True, score=1, diff_percentage=0.0
             ),
-            max_diff_percentage=1,
-            max_diff_pixels=10,
+            pixel_percentage_threshold=1,
+            pixel_threshold=10,
         )
         is False
     )
@@ -116,26 +116,26 @@ def test_small_diff_within_allowance_passes(pytestconfig, request, tmp_path):
 
     failures.clear()
     assertion._counter = 0
-    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_percentage=2)
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=2)
 
     assert failures == []
     assert list((tmp_path / "failures").rglob("diff_*.png")) == []
     assert list((tmp_path / "failures").rglob("actual_*.png")) == []
 
 
-def test_max_diff_pixels_allows_that_many_pixels(pytestconfig, request, tmp_path):
+def test_pixel_threshold_allows_that_many_pixels(pytestconfig, request, tmp_path):
     assertion, failures = _assertion(pytestconfig, request, tmp_path)
 
     assertion(_png_bytes())
     failures.clear()
     assertion._counter = 0
-    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_pixels=1)
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_threshold=1)
 
     assert failures == []
 
     failures.clear()
     assertion._counter = 0
-    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_pixels=0)
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_threshold=0)
 
     assert any("DO NOT match" in failure for failure in failures)
 
@@ -146,7 +146,7 @@ def test_diff_over_allowance_fails(pytestconfig, request, tmp_path):
     assertion(_png_bytes())
     failures.clear()
     assertion._counter = 0
-    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_percentage=0.5)
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=0.5)
 
     assert any("DO NOT match" in failure for failure in failures)
     assert list((tmp_path / "failures").rglob("diff_*.png"))
@@ -154,12 +154,12 @@ def test_diff_over_allowance_fails(pytestconfig, request, tmp_path):
 
 def test_call_overrides_partial_default(pytestconfig, request, tmp_path):
     assertion, failures = _assertion(pytestconfig, request, tmp_path)
-    with_default = partial(assertion, max_diff_percentage=0.5)
+    with_default = partial(assertion, pixel_percentage_threshold=0.5)
 
     with_default(_png_bytes())
     failures.clear()
     assertion._counter = 0
-    with_default(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_percentage=2)
+    with_default(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=2)
 
     assert failures == []
 
@@ -183,7 +183,7 @@ def test_allowance_disables_fail_fast(pytestconfig, request, tmp_path):
     assertion(
         _png_bytes(pixel=(0, 0, 255, 255)),
         fail_fast=True,
-        max_diff_percentage=1,
+        pixel_percentage_threshold=1,
     )
 
     assert seen["fail_fast"] is False
@@ -194,7 +194,7 @@ def test_allowance_disables_fail_fast(pytestconfig, request, tmp_path):
     assertion(
         _png_bytes(pixel=(0, 0, 255, 255)),
         fail_fast=True,
-        max_diff_pixels=1,
+        pixel_threshold=1,
     )
 
     assert seen["fail_fast"] is False
@@ -255,7 +255,7 @@ def test_fixture_override_binds_default_kwargs(testdir: pytest.Testdir):
 
         @pytest.fixture
         def assert_snapshot(assert_snapshot):
-            return partial(assert_snapshot, max_diff_percentage=50, antialiasing=True)
+            return partial(assert_snapshot, pixel_percentage_threshold=50, antialiasing=True)
         """
     )
     testdir.makepyfile(

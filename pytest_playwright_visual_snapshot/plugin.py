@@ -38,22 +38,23 @@ def is_ci_environment() -> bool:
 def diff_is_within_allowance(
     result: MatchResult,
     *,
-    max_diff_percentage: float | None,
-    max_diff_pixels: int | None,
+    pixel_percentage_threshold: float | None,
+    pixel_threshold: int | None,
 ) -> bool:
     if result.matched or result.size_mismatch:
         return False
 
-    if max_diff_percentage is None and max_diff_pixels is None:
+    if pixel_percentage_threshold is None and pixel_threshold is None:
         return False
 
-    if max_diff_percentage is not None and (
-        result.diff_percentage is None or result.diff_percentage >= max_diff_percentage
+    if pixel_percentage_threshold is not None and (
+        result.diff_percentage is None
+        or result.diff_percentage >= pixel_percentage_threshold
     ):
         return False
 
-    return max_diff_pixels is None or (
-        result.score is not None and result.score <= max_diff_pixels
+    return pixel_threshold is None or (
+        result.score is not None and result.score <= pixel_threshold
     )
 
 
@@ -351,13 +352,15 @@ class AssertSnapshot:
         self,
         img_or_page: bytes | Any,
         *,
+        # TODO: rename threshold to color_threshold, including
+        # playwright_visual_snapshot_threshold
         threshold: float | None = None,
         name: str | None = None,
         fail_fast: bool = False,
         mask_elements: list[str] | None = None,
         reset_scroll: bool = False,
-        max_diff_percentage: float | None = None,
-        max_diff_pixels: int | None = None,
+        pixel_percentage_threshold: float | None = None,
+        pixel_threshold: int | None = None,
         antialiasing: bool = False,
     ) -> None:
         if self._disable_snapshots:
@@ -385,7 +388,7 @@ class AssertSnapshot:
 
         # fail_fast stops after the first pixel, so a pixel or percentage budget would be wrong.
         compare_fail_fast = fail_fast
-        if max_diff_percentage is not None or max_diff_pixels is not None:
+        if pixel_percentage_threshold is not None or pixel_threshold is not None:
             compare_fail_fast = False
 
         # If page reference is passed, use screenshot
@@ -461,8 +464,8 @@ class AssertSnapshot:
 
         if result.matched or diff_is_within_allowance(
             result,
-            max_diff_percentage=max_diff_percentage,
-            max_diff_pixels=max_diff_pixels,
+            pixel_percentage_threshold=pixel_percentage_threshold,
+            pixel_threshold=pixel_threshold,
         ):
             actual_path.unlink(missing_ok=True)
             diff_path.unlink(missing_ok=True)
