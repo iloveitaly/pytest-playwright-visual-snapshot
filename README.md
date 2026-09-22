@@ -152,18 +152,27 @@ Screenshots are taken inside the browser, so the Playwright Docker image gives l
 ```yaml
 services:
   chrome:
+    # Must match the playwright Python package version.
     image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+    # arm64 and amd64 Chromium rasterize differently. CI is usually amd64.
     platform: linux/amd64
+    # PID 1 does not reap zombies. Chromium leaves them without an init process.
     init: true
+    # Chromium needs a large /dev/shm. Docker's default is 64MB, which crashes it.
     ipc: host
+    # Non-root user baked into the image. Chromium's sandbox is set up for this account.
     user: pwuser
+    # Bind to localhost. run-server has no authentication.
     ports:
       - "127.0.0.1:3000:3000"
     environment:
+      # Locale and timezone change text layout. Pin both.
       TZ: UTC
       LANG: C.UTF-8
+    # On Linux, host.docker.internal is undefined unless mapped to the host gateway.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Same Playwright version as the image. Client connects to ws://127.0.0.1:3000/.
     command:
       - /bin/sh
       - -c
@@ -196,7 +205,7 @@ docker compose up -d chrome
 PLAYWRIGHT_WS_ENDPOINT=ws://127.0.0.1:3000/ pytest
 ```
 
-`page.goto("http://localhost:...")` is the container. Reach an app on the host at `http://host.docker.internal:<port>`. `linux/amd64` keeps Apple Silicon on the same binary as typical CI runners. `ipc: host` is required; Chromium crashes when `/dev/shm` is Docker's default 64MB.
+`page.goto("http://localhost:...")` is the container. Reach an app on the host at `http://host.docker.internal:<port>`.
 
 Snapshot filenames still use `sys.platform` of the pytest process, so a Mac host writes `[darwin]` and CI writes `[linux]`. Run pytest inside this image as well if those baselines should be the same files.
 
