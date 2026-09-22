@@ -22,7 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # full history so `gitleaks git` in `just lint` can scan every commit
+          fetch-depth: 0
       - uses: jdx/mise-action@v4.3.0
+        with:
+          bootstrap: true
+          bootstrap_args: --update --yes
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: just lint
@@ -37,7 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4.3.0
-      - run: mise use python@${{ matrix.python-version }}
+        with:
+          bootstrap: true
+          bootstrap_args: --update --yes
+      # No -g: write the matrix pin into this repo's mise.toml, not ~/.config/mise.
+      - run: mise use --path mise.toml python@${{ matrix.python-version }}
+      - run: uv venv --clear
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: |
@@ -70,11 +81,24 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created }}
     permissions:
       id-token: write
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Check out branch instead of detached HEAD so bare git push works
+          ref: ${{ github.ref_name }}
       - uses: jdx/mise-action@v4.3.0
+        with:
+          bootstrap: true
+          bootstrap_args: --update --yes
       - uses: iloveitaly/github-action-direnv-load-and-mask@master
       - run: uv sync
       - run: uv build
       - run: uv publish
+
+      # Keep uv.lock in sync with pyproject.toml after release version bump without requiring extra config files
+      - name: Sync uv.lock
+        run: |
+          uv lock
+          git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -am "chore(deps): update uv.lock [skip ci]" && git push || true
+
