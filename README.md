@@ -155,6 +155,8 @@ def pytest_configure(config: Config):
     config.option.playwright_visual_matcher = "odiff"
 ```
 
+Here are the options you can configure on the assertion call:
+
 - `threshold` is the per-pixel color distance, from `0` to `1`, for both matchers.
 - `pixel_percentage_threshold` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match.
 - `pixel_threshold` is an absolute cap on differing pixels. `1` allows a single differing pixel.
