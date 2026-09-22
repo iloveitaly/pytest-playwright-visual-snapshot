@@ -14,7 +14,7 @@ from tests.conftest import (
 ODIFF_BIN = os.environ.get("ODIFF_BIN") or shutil.which("odiff")
 pytestmark = pytest.mark.skipif(
     ODIFF_BIN is None,
-    reason="odiff binary not found — set ODIFF_BIN or install via brew/npm",
+    reason="odiff binary not found — see the README install instructions",
 )
 
 _ODIFF_FLAG = "--override-ini=playwright_visual_matcher=odiff"

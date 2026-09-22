@@ -1,7 +1,6 @@
 """Unit tests for ODiffMatcher.
 
-Skipped when the odiff binary is unavailable — install via
-`brew install odiff` or `npm i -g odiff-bin`, or set ODIFF_BIN.
+Skipped when the odiff binary is unavailable. Install instructions are in the README.
 """
 
 import os
@@ -20,7 +19,7 @@ from pytest_playwright_visual_snapshot.matchers.odiff_matcher import (
 ODIFF_BIN = os.environ.get("ODIFF_BIN") or shutil.which("odiff")
 pytestmark = pytest.mark.skipif(
     ODIFF_BIN is None,
-    reason="odiff binary not found — set ODIFF_BIN or install via brew/npm",
+    reason="odiff binary not found — see the README install instructions",
 )
 
 

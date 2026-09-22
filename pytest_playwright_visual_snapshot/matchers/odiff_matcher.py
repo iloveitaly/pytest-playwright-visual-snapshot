@@ -15,6 +15,12 @@ class ODiffBinaryNotFoundError(RuntimeError):
     pass
 
 
+_ODIFF_INSTALL_INSTRUCTIONS = (
+    "https://github.com/iloveitaly/pytest-playwright-visual-snapshot"
+    "#odiff-antialiasing-and-diff-allowance"
+)
+
+
 class _ODiffServer:
     """Manages a long-running `odiff --server` subprocess.
 
@@ -48,8 +54,7 @@ class _ODiffServer:
         except FileNotFoundError:
             raise ODiffBinaryNotFoundError(
                 f"odiff binary not found at {self._binary_path!r}. "
-                "Install via `brew install odiff` or `npm i -g odiff-bin`, "
-                "or set ODIFF_BIN to its path."
+                f"Install instructions: {_ODIFF_INSTALL_INSTRUCTIONS}"
             ) from None
         self._reader_thread = threading.Thread(target=self._read_loop, daemon=True)
         self._reader_thread.start()
@@ -146,8 +151,8 @@ class ODiffMatcher:
 
         location = f" at {binary!r}" if binary else ""
         raise ODiffBinaryNotFoundError(
-            f"odiff binary not found{location}. Install via `brew install odiff` or "
-            "`npm i -g odiff-bin`, or set ODIFF_BIN to its path."
+            f"odiff binary not found{location}. "
+            f"Install instructions: {_ODIFF_INSTALL_INSTRUCTIONS}"
         )
 
     def _ensure_server(self) -> _ODiffServer:
