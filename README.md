@@ -143,14 +143,12 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
-Install that binary with mise, as [python-starter-template](https://github.com/iloveitaly/python-starter-template/pull/115) does in `.config/mise.dev.toml`:
+You can install the binary through [mise](https://mise.jdx.dev/):
 
 ```toml
 [tools]
 "github:dmtrKovalenko/odiff" = "latest"
 ```
-
-`mise install` puts `odiff` on `PATH`. Set `ODIFF_BIN` when the binary lives somewhere else. `brew install odiff` and `npm i -g odiff-bin` also provide it.
 
 ```python
 def pytest_configure(config: Config):
