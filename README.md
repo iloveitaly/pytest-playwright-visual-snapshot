@@ -170,7 +170,7 @@ assert_snapshot(
 )
 ```
 
-Override the `assert_snapshot` fixture to bind those as project defaults:
+Configure the same options globally in `conftest.py`:
 
 ```python
 from functools import partial
