@@ -155,11 +155,12 @@ def pytest_configure(config: Config):
     config.option.playwright_visual_matcher = "odiff"
 ```
 
-`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. Two separate budgets decide how many differing pixels still count as a match. Leave both unset to require every pixel to match.
+- `threshold` is the per-pixel color distance, from `0` to `1`, for both matchers.
+- `pixel_percentage_threshold` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match.
+- `pixel_threshold` is an absolute cap on differing pixels. `1` allows a single differing pixel.
+- `antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
 
-`pixel_percentage_threshold` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match. `pixel_threshold` is an absolute cap: `1` allows a single differing pixel. When both are set, the diff has to sit inside both caps. Both apply to every matcher.
-
-`antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
+`pixel_percentage_threshold` and `pixel_threshold` apply to every matcher. When both are set, the diff has to sit inside both caps. Leave both unset to require every pixel to match.
 
 ```python
 assert_snapshot(
