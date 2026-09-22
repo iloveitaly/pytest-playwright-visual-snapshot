@@ -174,9 +174,14 @@ services:
       - "host.docker.internal:host-gateway"
     # Same Playwright version as the image. Client connects to ws://127.0.0.1:3000/.
     command:
-      - /bin/sh
-      - -c
-      - npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port 3000 --host 0.0.0.0
+      - npx
+      - -y
+      - playwright@${PLAYWRIGHT_VERSION}
+      - run-server
+      - --port
+      - "3000"
+      - --host
+      - 0.0.0.0
 ```
 
 `.env` beside that file:
