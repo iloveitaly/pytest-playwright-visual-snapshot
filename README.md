@@ -143,9 +143,66 @@ def pytest_configure(config: Config):
 
 If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
 
+### Shared Chromium via Docker
+
+Screenshots are taken inside the browser, so the Playwright Docker image gives local runs and CI the same Chromium. Pin one Playwright version for the image, the server command, and the `playwright` Python package (`uv pip show playwright`).
+
+`docker-compose.yml`:
+
+```yaml
+services:
+  chrome:
+    image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+    platform: linux/amd64
+    init: true
+    ipc: host
+    user: pwuser
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      TZ: UTC
+      LANG: C.UTF-8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - /bin/sh
+      - -c
+      - npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port 3000 --host 0.0.0.0
+```
+
+`.env` beside that file:
+
+```
+PLAYWRIGHT_VERSION=1.55.0
+```
+
+`pytest-playwright` launches a local browser unless you override the `browser` fixture in `conftest.py`:
+
+```python
+import os
+
+import pytest
+
+
+@pytest.fixture(scope="session")
+def browser(browser_type):
+    browser = browser_type.connect(os.environ["PLAYWRIGHT_WS_ENDPOINT"])
+    yield browser
+    browser.close()
+```
+
+```bash
+docker compose up -d chrome
+PLAYWRIGHT_WS_ENDPOINT=ws://127.0.0.1:3000/ pytest
+```
+
+`page.goto("http://localhost:...")` is the container. Reach an app on the host at `http://host.docker.internal:<port>`. `linux/amd64` keeps Apple Silicon on the same binary as typical CI runners. `ipc: host` is required; Chromium crashes when `/dev/shm` is Docker's default 64MB.
+
+Snapshot filenames still use `sys.platform` of the pytest process, so a Mac host writes `[darwin]` and CI writes `[linux]`. Run pytest inside this image as well if those baselines should be the same files.
+
 ### GitHub Actions Script
 
-The CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
+Without a shared browser image, the CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
 
 ```shell
 failed_run_id=$(gh run list --status=failure --workflow=workflow_name.yml --json databaseId --jq '.[0].databaseId')
