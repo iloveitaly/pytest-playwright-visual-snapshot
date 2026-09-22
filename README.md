@@ -208,7 +208,7 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 ## API
 
-### Fixture Parameters
+### Snapshot Assertion Parameters
 
 - `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
 - `pixel_percentage_threshold` - diffs below this percent of pixels match, on a 0-100 scale. Unset means no percentage cap
