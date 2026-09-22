@@ -3,7 +3,6 @@
 Skipped when the odiff binary is unavailable. Install instructions are in the README.
 """
 
-import os
 import shutil
 import unittest.mock
 
@@ -15,10 +14,8 @@ from pytest_playwright_visual_snapshot.matchers.odiff_matcher import (
     ODiffMatcher,
 )
 
-# Skip all tests if odiff binary not present
-ODIFF_BIN = os.environ.get("ODIFF_BIN") or shutil.which("odiff")
 pytestmark = pytest.mark.skipif(
-    ODIFF_BIN is None,
+    shutil.which("odiff") is None,
     reason="odiff binary not found — see the README install instructions",
 )
 
@@ -137,7 +134,6 @@ def test_binary_not_found(tmp_path):
 
     matcher = ODiffMatcher(binary_path=None)
     with (
-        unittest.mock.patch.dict(os.environ, {"ODIFF_BIN": "/nonexistent/odiff"}),
         unittest.mock.patch("shutil.which", return_value=None),
         pytest.raises(ODiffBinaryNotFoundError),
     ):

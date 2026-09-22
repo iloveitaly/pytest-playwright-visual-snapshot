@@ -1,6 +1,5 @@
 import atexit
 import json
-import os
 import shutil
 import subprocess
 import threading
@@ -143,9 +142,7 @@ class ODiffMatcher:
         return self._resolve_binary()
 
     def _resolve_binary(self) -> str:
-        binary = (
-            self._binary_path or os.environ.get("ODIFF_BIN") or shutil.which("odiff")
-        )
+        binary = self._binary_path or shutil.which("odiff")
         if binary and Path(binary).is_file():
             return binary
 

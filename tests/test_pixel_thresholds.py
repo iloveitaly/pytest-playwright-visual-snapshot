@@ -1,7 +1,9 @@
 """Diff allowance and odiff antialiasing configuration."""
 
+import os
 from functools import partial
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -285,10 +287,19 @@ def test_fixture_override_binds_default_kwargs(testdir: pytest.Testdir):
     compared.assert_outcomes(passed=1)
 
 
+def _path_without_odiff(monkeypatch: pytest.MonkeyPatch) -> None:
+    entries = [
+        entry
+        for entry in os.environ.get("PATH", "").split(os.pathsep)
+        if entry and not (Path(entry) / "odiff").is_file()
+    ]
+    monkeypatch.setenv("PATH", os.pathsep.join(entries))
+
+
 def test_missing_odiff_binary_fails_the_session(
     testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("ODIFF_BIN", "/nonexistent/odiff")
+    _path_without_odiff(monkeypatch)
     testdir.makeini(
         """
         [pytest]
@@ -311,7 +322,7 @@ def test_missing_odiff_binary_fails_the_session(
 def test_disabled_snapshots_skip_missing_odiff_binary(
     testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("ODIFF_BIN", "/nonexistent/odiff")
+    _path_without_odiff(monkeypatch)
     testdir.makeini(
         """
         [pytest]
