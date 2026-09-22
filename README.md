@@ -143,18 +143,28 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
-`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. The share of the image that may differ is separate: `playwright_visual_max_diff_percentage`, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` treats a diff below 0.01% of pixels as a match.
+`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. `max_diff_percentage` is separate: the percent of differing pixels that still counts as a match, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` treats a diff below 0.01% of pixels as a match. It applies to every matcher.
 
-pixelmatch already ignores antialiased pixels. odiff counts them unless `playwright_visual_odiff_antialiasing` is enabled.
+`antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
 
 ```python
-def pytest_configure(config: Config):
-    config.option.playwright_visual_matcher = "odiff"
-    config.option.playwright_visual_odiff_antialiasing = True
-    config.option.playwright_visual_max_diff_percentage = 0.01
+assert_snapshot(page, antialiasing=True, max_diff_percentage=0.01)
 ```
 
-`assert_snapshot(page, antialiasing=True, max_diff_percentage=0.01)` overrides those two settings for a single call.
+Override the `assert_snapshot` fixture to bind those as project defaults:
+
+```python
+from functools import partial
+
+import pytest
+
+
+@pytest.fixture
+def assert_snapshot(assert_snapshot):
+    return partial(assert_snapshot, antialiasing=True, max_diff_percentage=0.01)
+```
+
+A later call can still override a bound default: `assert_snapshot(page, max_diff_percentage=1)`.
 
 ### Disabling Visual Snapshots Locally
 
@@ -180,7 +190,7 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 - `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
 - `max_diff_percentage` - diffs below this percent of pixels match, on a 0-100 scale. Unset requires an exact pixel match
-- `antialiasing` - for the odiff matcher, ignore antialiased pixels. Defaults to `playwright_visual_odiff_antialiasing`
+- `antialiasing` - odiff only. When `True`, odiff ignores antialiased pixels. Default is `False`. pixelmatch already ignores them, so this argument does not change pixelmatch results
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
 - `fail_fast` - If `True`, will fail after first different pixel. `False` by default. Ignored when `max_diff_percentage` is set, because the percentage needs a full count
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.

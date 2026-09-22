@@ -117,24 +117,6 @@ def pytest_addoption(parser: Parser) -> None:
 
     set_pytest_option(
         NAMESPACE,
-        "playwright_visual_odiff_antialiasing",
-        default=False,
-        help="Ignore antialiased pixels when using the odiff matcher",
-        available="ini",
-        type_hint=bool,
-    )
-
-    set_pytest_option(
-        NAMESPACE,
-        "playwright_visual_max_diff_percentage",
-        default=None,
-        help="Match when the percent of differing pixels is below this value (0-100, odiff diffPercentage)",
-        available="ini",
-        type_hint=float,
-    )
-
-    set_pytest_option(
-        NAMESPACE,
         "playwright_visual_screenshot_kwargs",
         default={},
         help="Dictionary of kwargs to pass to Playwright's screenshot method",
@@ -339,20 +321,6 @@ class AssertSnapshot:
                 type_hint=bool,
             )
         )
-        self._odiff_antialiasing = bool(
-            get_pytest_option(
-                NAMESPACE,
-                pytestconfig,
-                "playwright_visual_odiff_antialiasing",
-                type_hint=bool,
-            )
-        )
-        self._max_diff_percentage = get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "playwright_visual_max_diff_percentage",
-            type_hint=float,
-        )
 
         matcher_name = (
             get_pytest_option(
@@ -379,7 +347,7 @@ class AssertSnapshot:
         mask_elements: list[str] | None = None,
         reset_scroll: bool = False,
         max_diff_percentage: float | None = None,
-        antialiasing: bool | None = None,
+        antialiasing: bool = False,
     ) -> None:
         if self._disable_snapshots:
             if not self._warned_disabled:
@@ -403,12 +371,6 @@ class AssertSnapshot:
         # Use global threshold if no local threshold provided
         if not threshold:
             threshold = self._global_snapshot_threshold
-
-        if max_diff_percentage is None:
-            max_diff_percentage = self._max_diff_percentage
-
-        if antialiasing is None:
-            antialiasing = self._odiff_antialiasing
 
         # fail_fast stops after the first pixel, so the percentage would be wrong.
         compare_fail_fast = fail_fast if max_diff_percentage is None else False
