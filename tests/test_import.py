@@ -8,6 +8,6 @@ def test_import() -> None:
     assert isinstance(pytest_playwright_visual_snapshot.__name__, str)
 
 
-# TODO for debuggging!
-# def test_inspection(fixture_for_inspection):
-#     pass
+def test_version() -> None:
+    """Test that the version is available."""
+    assert isinstance(pytest_playwright_visual_snapshot.__version__, str)

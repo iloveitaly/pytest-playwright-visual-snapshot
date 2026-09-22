@@ -52,6 +52,19 @@ wheels = [
 ]
 
 [[package]]
+name = "beautiful-traceback"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama" },
+    { name = "pytest-plugin-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/53/95/9a03eff8708999c6fa176634600ae5a556fe8843cdcdbeb90c45e34f0fd9/beautiful_traceback-1.0.2.tar.gz", hash = "sha256:1f8e2705dc50f46034af317fe10a52f0afbeba9a3e129ea22d357a12b514c9d8", size = 20887, upload-time = "2026-09-04T11:20:04.881Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/7d/2d9c4a7d4835534518a9212130cf311a24903a26ccb99fbddcbbc905d115/beautiful_traceback-1.0.2-py3-none-any.whl", hash = "sha256:d4eb9a1dabdb13eafbd569f9de0e542b8679f72f4290bb7b0658469ff1bae366", size = 25931, upload-time = "2026-09-04T11:20:04.002Z" },
+]
+
+[[package]]
 name = "black"
 version = "26.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1566,6 +1579,7 @@ debugging-extras = [
     { name = "uv-development-toggle" },
 ]
 dev = [
+    { name = "beautiful-traceback" },
     { name = "covdefaults" },
     { name = "coverage" },
     { name = "pyright", extra = ["nodejs"] },
@@ -1614,6 +1628,7 @@ debugging-extras = [
     { name = "uv-development-toggle", specifier = ">=0.4.0" },
 ]
 dev = [
+    { name = "beautiful-traceback", specifier = ">=1.0.2" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "coverage", specifier = ">=7.13.4" },
     { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.408" },
