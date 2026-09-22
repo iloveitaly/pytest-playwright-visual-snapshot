@@ -35,16 +35,26 @@ def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
 
 
-def diff_percentage_is_allowed(
-    result: MatchResult, max_diff_percentage: float | None
+def diff_is_within_allowance(
+    result: MatchResult,
+    *,
+    max_diff_percentage: float | None,
+    max_diff_pixels: int | None,
 ) -> bool:
-    if max_diff_percentage is None or result.matched or result.size_mismatch:
+    if result.matched or result.size_mismatch:
         return False
 
-    if result.diff_percentage is None:
+    if max_diff_percentage is None and max_diff_pixels is None:
         return False
 
-    return result.diff_percentage < max_diff_percentage
+    if max_diff_percentage is not None and (
+        result.diff_percentage is None or result.diff_percentage >= max_diff_percentage
+    ):
+        return False
+
+    return max_diff_pixels is None or (
+        result.score is not None and result.score <= max_diff_pixels
+    )
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -347,6 +357,7 @@ class AssertSnapshot:
         mask_elements: list[str] | None = None,
         reset_scroll: bool = False,
         max_diff_percentage: float | None = None,
+        max_diff_pixels: int | None = None,
         antialiasing: bool = False,
     ) -> None:
         if self._disable_snapshots:
@@ -372,8 +383,10 @@ class AssertSnapshot:
         if not threshold:
             threshold = self._global_snapshot_threshold
 
-        # fail_fast stops after the first pixel, so the percentage would be wrong.
-        compare_fail_fast = fail_fast if max_diff_percentage is None else False
+        # fail_fast stops after the first pixel, so a pixel or percentage budget would be wrong.
+        compare_fail_fast = fail_fast
+        if max_diff_percentage is not None or max_diff_pixels is not None:
+            compare_fail_fast = False
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
@@ -446,7 +459,11 @@ class AssertSnapshot:
             antialiasing=antialiasing,
         )
 
-        if result.matched or diff_percentage_is_allowed(result, max_diff_percentage):
+        if result.matched or diff_is_within_allowance(
+            result,
+            max_diff_percentage=max_diff_percentage,
+            max_diff_pixels=max_diff_pixels,
+        ):
             actual_path.unlink(missing_ok=True)
             diff_path.unlink(missing_ok=True)
             return

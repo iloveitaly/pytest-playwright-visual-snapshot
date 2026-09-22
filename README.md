@@ -143,12 +143,14 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
-`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. `max_diff_percentage` is separate: the percent of differing pixels that still counts as a match, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` treats a diff below 0.01% of pixels as a match. It applies to every matcher.
+`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. Two separate budgets decide how many differing pixels still count as a match. Leave both unset to require every pixel to match.
+
+`max_diff_percentage` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match. `max_diff_pixels` is an absolute cap: `1` allows a single differing pixel. When both are set, the diff has to sit inside both caps. Both apply to every matcher.
 
 `antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
 
 ```python
-assert_snapshot(page, antialiasing=True, max_diff_percentage=0.01)
+assert_snapshot(page, antialiasing=True, max_diff_percentage=0.01, max_diff_pixels=20)
 ```
 
 Override the `assert_snapshot` fixture to bind those as project defaults:
@@ -161,7 +163,12 @@ import pytest
 
 @pytest.fixture
 def assert_snapshot(assert_snapshot):
-    return partial(assert_snapshot, antialiasing=True, max_diff_percentage=0.01)
+    return partial(
+        assert_snapshot,
+        antialiasing=True,
+        max_diff_percentage=0.01,
+        max_diff_pixels=20,
+    )
 ```
 
 A later call can still override a bound default: `assert_snapshot(page, max_diff_percentage=1)`.
@@ -189,10 +196,11 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 ### Fixture Parameters
 
 - `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
-- `max_diff_percentage` - diffs below this percent of pixels match, on a 0-100 scale. Unset requires an exact pixel match
+- `max_diff_percentage` - diffs below this percent of pixels match, on a 0-100 scale. Unset means no percentage cap
+- `max_diff_pixels` - maximum number of differing pixels that still match. Unset means no pixel cap. When set with `max_diff_percentage`, both caps apply
 - `antialiasing` - odiff only. When `True`, odiff ignores antialiased pixels. Default is `False`. pixelmatch already ignores them, so this argument does not change pixelmatch results
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
-- `fail_fast` - If `True`, will fail after first different pixel. `False` by default. Ignored when `max_diff_percentage` is set, because the percentage needs a full count
+- `fail_fast` - If `True`, will fail after first different pixel. `False` by default. A full pixel count is used when `max_diff_percentage` or `max_diff_pixels` is set
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
 - `reset_scroll` - If `True`, scrolls the page to `(0, 0)` before capturing a `Page` screenshot. Useful when prior test actions leave the viewport scrolled. Default is `False`.
 

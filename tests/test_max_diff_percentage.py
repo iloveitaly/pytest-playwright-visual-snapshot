@@ -13,7 +13,7 @@ from pytest_playwright_visual_snapshot.matchers.pixelmatch_matcher import (
 )
 from pytest_playwright_visual_snapshot.plugin import (
     AssertSnapshot,
-    diff_percentage_is_allowed,
+    diff_is_within_allowance,
 )
 
 
@@ -37,16 +37,58 @@ def _assertion(pytestconfig, request, tmp_path):
     return assertion, failures
 
 
-def test_diff_percentage_is_allowed():
+def test_diff_is_within_allowance():
     pixel_diff = MatchResult(matched=False, score=1, diff_percentage=0.005)
 
-    assert diff_percentage_is_allowed(pixel_diff, 0.01) is True
-    assert diff_percentage_is_allowed(pixel_diff, 0.005) is False
-    assert diff_percentage_is_allowed(pixel_diff, None) is False
     assert (
-        diff_percentage_is_allowed(
-            MatchResult(matched=False, size_mismatch=True, diff_percentage=0.0),
-            1,
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=0.01, max_diff_pixels=None
+        )
+        is True
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=0.005, max_diff_pixels=None
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=None, max_diff_pixels=None
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=None, max_diff_pixels=1
+        )
+        is True
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=None, max_diff_pixels=0
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=0.01, max_diff_pixels=0
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, max_diff_percentage=0.001, max_diff_pixels=5
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            MatchResult(
+                matched=False, size_mismatch=True, score=1, diff_percentage=0.0
+            ),
+            max_diff_percentage=1,
+            max_diff_pixels=10,
         )
         is False
     )
@@ -79,6 +121,23 @@ def test_small_diff_within_allowance_passes(pytestconfig, request, tmp_path):
     assert failures == []
     assert list((tmp_path / "failures").rglob("diff_*.png")) == []
     assert list((tmp_path / "failures").rglob("actual_*.png")) == []
+
+
+def test_max_diff_pixels_allows_that_many_pixels(pytestconfig, request, tmp_path):
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+
+    assertion(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_pixels=1)
+
+    assert failures == []
+
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), max_diff_pixels=0)
+
+    assert any("DO NOT match" in failure for failure in failures)
 
 
 def test_diff_over_allowance_fails(pytestconfig, request, tmp_path):
@@ -129,6 +188,16 @@ def test_allowance_disables_fail_fast(pytestconfig, request, tmp_path):
 
     assert seen["fail_fast"] is False
     assert seen["antialiasing"] is False
+
+    seen.clear()
+    assertion._counter = 0
+    assertion(
+        _png_bytes(pixel=(0, 0, 255, 255)),
+        fail_fast=True,
+        max_diff_pixels=1,
+    )
+
+    assert seen["fail_fast"] is False
 
 
 def test_antialiasing_is_forwarded(pytestconfig, request, tmp_path):
