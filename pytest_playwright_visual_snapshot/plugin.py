@@ -18,6 +18,7 @@ from pytest_plugin_utils import (
 )
 
 from .matchers import MatchResult, get_matcher
+from .matchers.odiff_matcher import ODiffMatcher
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -500,6 +501,35 @@ class AssertSnapshot:
         self._failures.append(
             f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}"
         )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def require_odiff_binary(pytestconfig: Config) -> None:
+    # Disabled snapshots never start odiff, so a missing binary is fine.
+    snapshots_disabled = bool(
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_disable_snapshots",
+            type_hint=bool,
+        )
+    )
+    if snapshots_disabled:
+        return
+
+    matcher_name = (
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_matcher",
+            type_hint=str,
+        )
+        or "pixelmatch"
+    )
+    if matcher_name != "odiff":
+        return
+
+    ODiffMatcher().require_binary()
 
 
 @pytest.fixture

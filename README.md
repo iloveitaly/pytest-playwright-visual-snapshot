@@ -143,7 +143,7 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
-You can install the binary through [mise](https://mise.jdx.dev/):
+You can install the binary through [mise](https://mise.jdx.dev/). If this matcher is selected and the binary is missing, pytest raises `ODiffBinaryNotFoundError` before comparisons run. Disabling snapshots skips that check.
 
 ```toml
 [tools]

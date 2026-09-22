@@ -283,3 +283,49 @@ def test_fixture_override_binds_default_kwargs(testdir: pytest.Testdir):
 
     compared = testdir.runpytest()
     compared.assert_outcomes(passed=1)
+
+
+def test_missing_odiff_binary_fails_the_session(
+    testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("ODIFF_BIN", "/nonexistent/odiff")
+    testdir.makeini(
+        """
+        [pytest]
+        playwright_visual_matcher = odiff
+        """
+    )
+    testdir.makepyfile(
+        """
+        def test_snapshot(assert_snapshot):
+            assert_snapshot(b"unused")
+        """
+    )
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(errors=1)
+    result.stdout.fnmatch_lines(["*ODiffBinaryNotFoundError*"])
+
+
+def test_disabled_snapshots_skip_missing_odiff_binary(
+    testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("ODIFF_BIN", "/nonexistent/odiff")
+    testdir.makeini(
+        """
+        [pytest]
+        playwright_visual_matcher = odiff
+        playwright_visual_disable_snapshots = true
+        """
+    )
+    testdir.makepyfile(
+        """
+        def test_snapshot(assert_snapshot):
+            assert_snapshot(b"unused")
+        """
+    )
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=1)

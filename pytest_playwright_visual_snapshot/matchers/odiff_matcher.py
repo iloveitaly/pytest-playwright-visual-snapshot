@@ -134,19 +134,21 @@ class ODiffMatcher:
         self._server: _ODiffServer | None = None
         self._server_lock = threading.Lock()
 
+    def require_binary(self) -> str:
+        return self._resolve_binary()
+
     def _resolve_binary(self) -> str:
-        if self._binary_path:
-            return self._binary_path
-        env = os.environ.get("ODIFF_BIN")
-        if env:
-            return env
-        found = shutil.which("odiff")
-        if not found:
-            raise ODiffBinaryNotFoundError(
-                "odiff binary not found. Install via `brew install odiff` or "
-                "`npm i -g odiff-bin`, or set ODIFF_BIN to its path."
-            )
-        return found
+        binary = (
+            self._binary_path or os.environ.get("ODIFF_BIN") or shutil.which("odiff")
+        )
+        if binary and Path(binary).is_file():
+            return binary
+
+        location = f" at {binary!r}" if binary else ""
+        raise ODiffBinaryNotFoundError(
+            f"odiff binary not found{location}. Install via `brew install odiff` or "
+            "`npm i -g odiff-bin`, or set ODIFF_BIN to its path."
+        )
 
     def _ensure_server(self) -> _ODiffServer:
         if self._server is None:
