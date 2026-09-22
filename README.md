@@ -152,8 +152,8 @@ Screenshots are taken inside the browser, so the Playwright Docker image gives l
 ```yaml
 services:
   chrome:
-    # Must match the playwright Python package version.
-    image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+    # Must match the playwright Python package version (uv pip show playwright).
+    image: mcr.microsoft.com/playwright:v1.55.0-noble
     # arm64 and amd64 Chromium rasterize differently. CI is usually amd64.
     platform: linux/amd64
     # PID 1 does not reap zombies. Chromium leaves them without an init process.
@@ -173,13 +173,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Same Playwright version as the image. Client connects to ws://127.0.0.1:3000/.
-    command: npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port 3000 --host 0.0.0.0
-```
-
-`.env` beside that file:
-
-```
-PLAYWRIGHT_VERSION=1.55.0
+    command: npx -y playwright@1.55.0 run-server --port 3000 --host 0.0.0.0
 ```
 
 `pytest-playwright` launches a local browser unless you override the `browser` fixture in `conftest.py`:
