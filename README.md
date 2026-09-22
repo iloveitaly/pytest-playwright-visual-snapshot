@@ -143,7 +143,7 @@ def pytest_configure(config: Config):
 
 `playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary (`ODIFF_BIN`, otherwise `odiff` on `PATH`).
 
-`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. The share of the image that may differ is separate: `playwright_visual_max_diff_percentage`, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` allows up to 0.01% of pixels to differ.
+`threshold` is the per-pixel color distance, from `0` to `1`, for both matchers. The share of the image that may differ is separate: `playwright_visual_max_diff_percentage`, on a 0-100 scale (odiff's `diffPercentage`). Leave it unset to require every pixel to match. `0.01` treats a diff below 0.01% of pixels as a match.
 
 pixelmatch already ignores antialiased pixels. odiff counts them unless `playwright_visual_odiff_antialiasing` is enabled.
 
@@ -179,7 +179,7 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 ### Fixture Parameters
 
 - `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
-- `max_diff_percentage` - percent of pixels allowed to differ, on a 0-100 scale. Unset requires an exact pixel match
+- `max_diff_percentage` - diffs below this percent of pixels match, on a 0-100 scale. Unset requires an exact pixel match
 - `antialiasing` - for the odiff matcher, ignore antialiased pixels. Defaults to `playwright_visual_odiff_antialiasing`
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
 - `fail_fast` - If `True`, will fail after first different pixel. `False` by default. Ignored when `max_diff_percentage` is set, because the percentage needs a full count

@@ -17,6 +17,7 @@ class PixelmatchMatcher:
         *,
         threshold: float,
         fail_fast: bool = False,
+        # pixelmatch already ignores antialiased pixels. This flag is for odiff.
         antialiasing: bool = False,
     ) -> MatchResult:
         img_actual = Image.open(actual_path)

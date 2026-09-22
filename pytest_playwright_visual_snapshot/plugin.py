@@ -128,7 +128,7 @@ def pytest_addoption(parser: Parser) -> None:
         NAMESPACE,
         "playwright_visual_max_diff_percentage",
         default=None,
-        help="Percent of pixels allowed to differ, on a 0-100 scale (odiff diffPercentage)",
+        help="Match when the percent of differing pixels is below this value (0-100, odiff diffPercentage)",
         available="ini",
         type_hint=float,
     )
