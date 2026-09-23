@@ -51,7 +51,7 @@ class _Missing:
 _MISSING = _Missing()
 
 
-def _assertion_kwarg[T](
+def _resolve_assertion_kwarg_precedence[T](
     assertion_kwargs: dict[str, Any],
     name: str,
     explicit: T | _Missing,
@@ -426,31 +426,31 @@ class AssertSnapshot:
         pixel_threshold: int | None | _Missing = _MISSING,
         antialiasing: bool | _Missing = _MISSING,
     ) -> None:
-        threshold_value: float | None = _assertion_kwarg(
+        threshold_value: float | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "threshold", threshold, None
         )
-        snapshot_name: str | None = _assertion_kwarg(
+        snapshot_name: str | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "name", name, None
         )
-        fail_fast_enabled: bool = _assertion_kwarg(
+        fail_fast_enabled: bool = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "fail_fast", fail_fast, False
         )
-        mask_selectors: list[str] | None = _assertion_kwarg(
+        mask_selectors: list[str] | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "mask_elements", mask_elements, None
         )
-        reset_scroll_enabled: bool = _assertion_kwarg(
+        reset_scroll_enabled: bool = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "reset_scroll", reset_scroll, False
         )
-        pixel_percentage_limit: float | None = _assertion_kwarg(
+        pixel_percentage_limit: float | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs,
             "pixel_percentage_threshold",
             pixel_percentage_threshold,
             None,
         )
-        pixel_limit: int | None = _assertion_kwarg(
+        pixel_limit: int | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "pixel_threshold", pixel_threshold, None
         )
-        ignore_antialiasing: bool = _assertion_kwarg(
+        ignore_antialiasing: bool = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "antialiasing", antialiasing, False
         )
 
