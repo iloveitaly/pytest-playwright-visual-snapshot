@@ -11,6 +11,7 @@ setup:
     # Keep IDE-specific rule files in sync with instructions.md
     if [ -f instructions.md ]; then uvx llm-ide-rules explode; fi
     @echo "activate: source ./.venv/bin/activate"
+    uv run playwright install-deps
     uv run playwright install
 
 # Start docker services
