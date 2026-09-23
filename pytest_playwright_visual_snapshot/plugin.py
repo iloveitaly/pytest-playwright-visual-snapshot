@@ -45,18 +45,24 @@ T = TypeVar("T")
 
 
 class _Missing:
-    pass
+    """Marks an assert_snapshot argument the caller did not pass."""
 
 
 _MISSING = _Missing()
 
 
-def _assertion_kwarg(
+def _assertion_kwarg[T](
     assertion_kwargs: dict[str, Any],
     name: str,
-    explicit: Any,
-    default: Any,
-) -> Any:
+    explicit: T | _Missing,
+    default: T,
+) -> T:
+    """Resolve one assert_snapshot argument.
+
+    `_Missing` means the caller omitted the argument, so
+    `playwright_visual_assertion_kwargs` can supply it. An explicit argument
+    wins, including False and None, which are also the built-in defaults.
+    """
     if isinstance(explicit, _Missing):
         if name in assertion_kwargs:
             return assertion_kwargs[name]
