@@ -85,6 +85,3 @@ fail_under = 50
 
 [tool.ruff]
 extend-exclude = ["playground.py", "playground/"]
-
-[tool.ruff.format]
-quote-style = "preserve"
