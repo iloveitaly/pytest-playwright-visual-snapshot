@@ -57,11 +57,11 @@ def _assertion_kwarg[T](
     explicit: T | _Missing,
     default: T,
 ) -> T:
-    """Resolve one assert_snapshot argument.
+    """Passed keyword, then configured kwarg default, then built-in default.
 
-    `_Missing` means the caller omitted the argument, so
-    `playwright_visual_assertion_kwargs` can supply it. An explicit argument
-    wins, including False and None, which are also the built-in defaults.
+    `_Missing` means the caller omitted the keyword, so an explicit False or
+    None still wins. The configured default is
+    `playwright_visual_assertion_kwargs`.
     """
     if isinstance(explicit, _Missing):
         if name in assertion_kwargs:
