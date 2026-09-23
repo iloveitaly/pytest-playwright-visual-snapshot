@@ -170,25 +170,18 @@ assert_snapshot(
 )
 ```
 
-Configure the same options globally in `conftest.py`:
+Configure the same options as defaults in `conftest.py`:
 
 ```python
-from functools import partial
-
-import pytest
-
-
-@pytest.fixture
-def assert_snapshot(assert_snapshot):
-    return partial(
-        assert_snapshot,
-        antialiasing=True,
-        pixel_percentage_threshold=0.01,
-        pixel_threshold=20,
-    )
+def pytest_configure(config: Config):
+    config.option.playwright_visual_assertion_kwargs = {
+        "antialiasing": True,
+        "pixel_percentage_threshold": 0.01,
+        "pixel_threshold": 20,
+    }
 ```
 
-A later call can still override a bound default: `assert_snapshot(page, pixel_percentage_threshold=1)`.
+A later call can still override a default: `assert_snapshot(page, pixel_percentage_threshold=1)`.
 
 ### Disabling Visual Snapshots Locally
 

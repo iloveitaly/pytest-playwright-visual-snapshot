@@ -248,6 +248,90 @@ def test_odiff_forwards_antialiasing_flag(tmp_path):
     }
 
 
+def test_assertion_kwargs_supply_defaults(pytestconfig, request, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        pytestconfig.option,
+        "playwright_visual_assertion_kwargs",
+        {"antialiasing": True, "pixel_percentage_threshold": 2},
+        raising=False,
+    )
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+    assertion(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+
+    seen: dict[str, object] = {}
+
+    class _Matcher:
+        name = "pixelmatch"
+
+        def compare(self, baseline_path, actual_path, diff_output_path, **kwargs):
+            seen.update(kwargs)
+            return MatchResult(matched=False, score=1, diff_percentage=1)
+
+    assertion._matcher = _Matcher()
+    assertion(_png_bytes())
+
+    assert seen["antialiasing"] is True
+    assert failures == []
+
+    seen.clear()
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(), pixel_percentage_threshold=0.5, antialiasing=False)
+
+    assert seen["antialiasing"] is False
+    assert any("DO NOT match" in failure for failure in failures)
+
+
+def test_unknown_assertion_kwarg_fails(pytestconfig, request, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        pytestconfig.option,
+        "playwright_visual_assertion_kwargs",
+        {"not_a_real_option": True},
+        raising=False,
+    )
+
+    with pytest.raises(AssertionError, match="unknown assert_snapshot defaults"):
+        _assertion(pytestconfig, request, tmp_path)
+
+
+def test_assertion_kwargs_config_supplies_defaults(testdir: pytest.Testdir):
+    testdir.makeconftest(
+        """
+        def pytest_configure(config):
+            config.option.playwright_visual_assertion_kwargs = {
+                "pixel_percentage_threshold": 50,
+            }
+        """
+    )
+    testdir.makepyfile(
+        """
+        from io import BytesIO
+
+        from PIL import Image
+
+        def _png(pixel=None):
+            image = Image.new("RGBA", (10, 10), (255, 0, 0, 255))
+            if pixel is not None:
+                image.putpixel((0, 0), pixel)
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            return buffer.getvalue()
+
+        def test_budget(assert_snapshot):
+            assert_snapshot(_png(), name="same.png")
+            assert_snapshot(_png((0, 0, 255, 255)), name="one-pixel.png")
+        """
+    )
+
+    created = testdir.runpytest()
+    created.assert_outcomes(passed=1, errors=1)
+
+    compared = testdir.runpytest()
+    compared.assert_outcomes(passed=1)
+
+
 def test_fixture_override_binds_default_kwargs(testdir: pytest.Testdir):
     testdir.makeconftest(
         """
