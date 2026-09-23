@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, TypeVar
 
 import pytest
@@ -28,18 +29,19 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 NAMESPACE = "pytest_playwright_visual_snapshot"
-_ASSERTION_KWARGS = frozenset(
+_ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     {
-        "threshold",
-        "name",
-        "fail_fast",
-        "mask_elements",
-        "reset_scroll",
-        "pixel_percentage_threshold",
-        "pixel_threshold",
-        "antialiasing",
+        "threshold": None,
+        "name": None,
+        "fail_fast": False,
+        "mask_elements": None,
+        "reset_scroll": False,
+        "pixel_percentage_threshold": None,
+        "pixel_threshold": None,
+        "antialiasing": False,
     }
 )
+_ASSERTION_KWARGS = frozenset(_ASSERTION_KWARG_DEFAULTS)
 
 T = TypeVar("T")
 
@@ -55,19 +57,19 @@ def _resolve_assertion_kwarg_precedence[T](
     assertion_kwargs: dict[str, Any],
     name: str,
     explicit: T | _Missing,
-    default: T,
 ) -> T:
     """Passed keyword, then configured kwarg default, then built-in default.
 
     `_Missing` means the caller omitted the keyword, so an explicit False or
     None still wins. The configured default is
-    `playwright_visual_assertion_kwargs`.
+    `playwright_visual_assertion_kwargs`. Built-in defaults are
+    `_ASSERTION_KWARG_DEFAULTS`.
     """
     if isinstance(explicit, _Missing):
         if name in assertion_kwargs:
             return assertion_kwargs[name]
 
-        return default
+        return _ASSERTION_KWARG_DEFAULTS[name]
 
     return explicit
 
@@ -427,31 +429,30 @@ class AssertSnapshot:
         antialiasing: bool | _Missing = _MISSING,
     ) -> None:
         threshold_value: float | None = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "threshold", threshold, None
+            self._assertion_kwargs, "threshold", threshold
         )
         snapshot_name: str | None = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "name", name, None
+            self._assertion_kwargs, "name", name
         )
         fail_fast_enabled: bool = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "fail_fast", fail_fast, False
+            self._assertion_kwargs, "fail_fast", fail_fast
         )
         mask_selectors: list[str] | None = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "mask_elements", mask_elements, None
+            self._assertion_kwargs, "mask_elements", mask_elements
         )
         reset_scroll_enabled: bool = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "reset_scroll", reset_scroll, False
+            self._assertion_kwargs, "reset_scroll", reset_scroll
         )
         pixel_percentage_limit: float | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs,
             "pixel_percentage_threshold",
             pixel_percentage_threshold,
-            None,
         )
         pixel_limit: int | None = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "pixel_threshold", pixel_threshold, None
+            self._assertion_kwargs, "pixel_threshold", pixel_threshold
         )
         ignore_antialiasing: bool = _resolve_assertion_kwarg_precedence(
-            self._assertion_kwargs, "antialiasing", antialiasing, False
+            self._assertion_kwargs, "antialiasing", antialiasing
         )
 
         if self._disable_snapshots:
