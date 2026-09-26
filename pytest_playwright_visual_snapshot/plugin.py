@@ -428,6 +428,8 @@ class AssertSnapshot:
         pixel_threshold: int | None | _Missing = _MISSING,
         antialiasing: bool | _Missing = _MISSING,
     ) -> None:
+        # `_MISSING` lets playwright_visual_assertion_kwargs set global defaults.
+        # An explicit keyword still wins, including False and None.
         threshold_value: float | None = _resolve_assertion_kwarg_precedence(
             self._assertion_kwargs, "threshold", threshold
         )
