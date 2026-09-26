@@ -1,9 +1,5 @@
-"""Unit tests for ODiffMatcher.
+"""Unit tests for ODiffMatcher."""
 
-Skipped when the odiff binary is unavailable. Install instructions are in the README.
-"""
-
-import shutil
 import unittest.mock
 
 import pytest
@@ -12,11 +8,6 @@ from PIL import Image
 from pytest_playwright_visual_snapshot.matchers.odiff_matcher import (
     ODiffBinaryNotFoundError,
     ODiffMatcher,
-)
-
-pytestmark = pytest.mark.skipif(
-    shutil.which("odiff") is None,
-    reason="odiff binary not found — see the README install instructions",
 )
 
 

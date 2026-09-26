@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 
 import pytest
@@ -8,11 +7,6 @@ from tests.conftest import (
     assert_single_snapshot_dir,
     get_expected_filename,
     get_snapshots_dir,
-)
-
-pytestmark = pytest.mark.skipif(
-    shutil.which("odiff") is None,
-    reason="odiff binary not found — see the README install instructions",
 )
 
 _ODIFF_FLAG = "--override-ini=playwright_visual_matcher=odiff"
