@@ -598,6 +598,7 @@ class AssertSnapshot:
 
 @pytest.fixture(scope="session", autouse=True)
 def require_odiff_binary(pytestconfig: Config) -> None:
+    # Fail at session start. The first snapshot is saved before compare(), so a missing binary would not fail that run.
     # Disabled snapshots never start odiff, so a missing binary is fine.
     snapshots_disabled = bool(
         get_pytest_option(
