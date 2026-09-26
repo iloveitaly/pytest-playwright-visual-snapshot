@@ -1,6 +1,5 @@
 import atexit
 import json
-import os
 import shutil
 import subprocess
 import threading
@@ -13,6 +12,12 @@ from .base import MatchResult
 
 class ODiffBinaryNotFoundError(RuntimeError):
     pass
+
+
+_ODIFF_INSTALL_INSTRUCTIONS = (
+    "https://github.com/iloveitaly/pytest-playwright-visual-snapshot"
+    "#odiff-antialiasing-and-diff-allowance"
+)
 
 
 class _ODiffServer:
@@ -48,8 +53,7 @@ class _ODiffServer:
         except FileNotFoundError:
             raise ODiffBinaryNotFoundError(
                 f"odiff binary not found at {self._binary_path!r}. "
-                "Install via `brew install odiff` or `npm i -g odiff-bin`, "
-                "or set ODIFF_BIN to its path."
+                f"Install instructions: {_ODIFF_INSTALL_INSTRUCTIONS}"
             ) from None
         self._reader_thread = threading.Thread(target=self._read_loop, daemon=True)
         self._reader_thread.start()
@@ -134,19 +138,19 @@ class ODiffMatcher:
         self._server: _ODiffServer | None = None
         self._server_lock = threading.Lock()
 
+    def require_binary(self) -> str:
+        return self._resolve_binary()
+
     def _resolve_binary(self) -> str:
-        if self._binary_path:
-            return self._binary_path
-        env = os.environ.get("ODIFF_BIN")
-        if env:
-            return env
-        found = shutil.which("odiff")
-        if not found:
-            raise ODiffBinaryNotFoundError(
-                "odiff binary not found. Install via `brew install odiff` or "
-                "`npm i -g odiff-bin`, or set ODIFF_BIN to its path."
-            )
-        return found
+        binary = self._binary_path or shutil.which("odiff")
+        if binary and Path(binary).is_file():
+            return binary
+
+        location = f" at {binary!r}" if binary else ""
+        raise ODiffBinaryNotFoundError(
+            f"odiff binary not found{location}. "
+            f"Install instructions: {_ODIFF_INSTALL_INSTRUCTIONS}"
+        )
 
     def _ensure_server(self) -> _ODiffServer:
         if self._server is None:
@@ -166,20 +170,25 @@ class ODiffMatcher:
         *,
         threshold: float,
         fail_fast: bool = False,
+        antialiasing: bool = False,
     ) -> MatchResult:
         server = self._ensure_server()
+        options: dict[str, Any] = {
+            "threshold": threshold,
+            "failOnLayoutDiff": True,
+        }
+        if antialiasing:
+            options["antialiasing"] = True
+
         result = server.compare(
             base=baseline_path,
             compare=actual_path,
             output=diff_output_path,
-            options={
-                "threshold": threshold,
-                "failOnLayoutDiff": True,
-            },
+            options=options,
         )
 
         if result.get("match") is True:
-            return MatchResult(matched=True, score=0.0)
+            return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
 
         reason = result.get("reason")
         if reason == "layout-diff":
@@ -192,6 +201,10 @@ class ODiffMatcher:
                 actual_size=Image.open(actual_path).size,
             )
         if reason == "pixel-diff":
-            return MatchResult(matched=False, score=float(result.get("diffCount", 0)))
+            return MatchResult(
+                matched=False,
+                score=float(result.get("diffCount", 0)),
+                diff_percentage=float(result["diffPercentage"]),
+            )
 
         raise RuntimeError(f"odiff returned unexpected result: {result!r}")

@@ -1,0 +1,426 @@
+"""Diff allowance and odiff antialiasing configuration."""
+
+import os
+from functools import partial
+from io import BytesIO
+from pathlib import Path
+
+import pytest
+from PIL import Image
+
+from pytest_playwright_visual_snapshot.matchers.base import MatchResult
+from pytest_playwright_visual_snapshot.matchers.odiff_matcher import ODiffMatcher
+from pytest_playwright_visual_snapshot.matchers.pixelmatch_matcher import (
+    PixelmatchMatcher,
+)
+from pytest_playwright_visual_snapshot.plugin import (
+    AssertSnapshot,
+    diff_is_within_allowance,
+)
+
+
+def _png_bytes(color=(255, 0, 0, 255), pixel=None) -> bytes:
+    image = Image.new("RGBA", (10, 10), color)
+    if pixel is not None:
+        image.putpixel((0, 0), pixel)
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def _assertion(pytestconfig, request, tmp_path):
+    failures: list[str] = []
+    assertion = AssertSnapshot(pytestconfig, request, failures)
+    assertion._snapshots_base_dir = tmp_path / "snapshots"
+    assertion._failures_base_dir = tmp_path / "failures"
+    assertion._test_name = "budget"
+    assertion._counter = 0
+    return assertion, failures
+
+
+def test_diff_is_within_allowance():
+    pixel_diff = MatchResult(matched=False, score=1, diff_percentage=0.005)
+
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=0.01, pixel_threshold=None
+        )
+        is True
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=0.005, pixel_threshold=None
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=None
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=1
+        )
+        is True
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=None, pixel_threshold=0
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=0.01, pixel_threshold=0
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            pixel_diff, pixel_percentage_threshold=0.001, pixel_threshold=5
+        )
+        is False
+    )
+    assert (
+        diff_is_within_allowance(
+            MatchResult(
+                matched=False, size_mismatch=True, score=1, diff_percentage=0.0
+            ),
+            pixel_percentage_threshold=1,
+            pixel_threshold=10,
+        )
+        is False
+    )
+
+
+def test_pixelmatch_reports_diff_percentage(tmp_path):
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    base.write_bytes(_png_bytes())
+    actual.write_bytes(_png_bytes(pixel=(0, 0, 255, 255)))
+
+    result = PixelmatchMatcher().compare(base, actual, diff, threshold=0.1)
+
+    assert result.matched is False
+    assert result.score == 1
+    assert result.diff_percentage == 1
+
+
+def test_small_diff_within_allowance_passes(pytestconfig, request, tmp_path):
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+
+    assertion(_png_bytes())
+    assert any("New snapshot" in failure for failure in failures)
+
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=2)
+
+    assert failures == []
+    assert list((tmp_path / "failures").rglob("diff_*.png")) == []
+    assert list((tmp_path / "failures").rglob("actual_*.png")) == []
+
+
+def test_pixel_threshold_allows_that_many_pixels(pytestconfig, request, tmp_path):
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+
+    assertion(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_threshold=1)
+
+    assert failures == []
+
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_threshold=0)
+
+    assert any("DO NOT match" in failure for failure in failures)
+
+
+def test_diff_over_allowance_fails(pytestconfig, request, tmp_path):
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+
+    assertion(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=0.5)
+
+    assert any("DO NOT match" in failure for failure in failures)
+    assert list((tmp_path / "failures").rglob("diff_*.png"))
+
+
+def test_call_overrides_partial_default(pytestconfig, request, tmp_path):
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+    with_default = partial(assertion, pixel_percentage_threshold=0.5)
+
+    with_default(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+    with_default(_png_bytes(pixel=(0, 0, 255, 255)), pixel_percentage_threshold=2)
+
+    assert failures == []
+
+
+def test_allowance_disables_fail_fast(pytestconfig, request, tmp_path):
+    assertion, _failures = _assertion(pytestconfig, request, tmp_path)
+    seen: dict[str, object] = {}
+
+    class _Matcher:
+        name = "pixelmatch"
+
+        def compare(self, baseline_path, actual_path, diff_output_path, **kwargs):
+            seen.update(kwargs)
+            return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
+
+    assertion._matcher = _Matcher()
+    assertion(_png_bytes())
+
+    seen.clear()
+    assertion._counter = 0
+    assertion(
+        _png_bytes(pixel=(0, 0, 255, 255)),
+        fail_fast=True,
+        pixel_percentage_threshold=1,
+    )
+
+    assert seen["fail_fast"] is False
+    assert seen["antialiasing"] is False
+
+    seen.clear()
+    assertion._counter = 0
+    assertion(
+        _png_bytes(pixel=(0, 0, 255, 255)),
+        fail_fast=True,
+        pixel_threshold=1,
+    )
+
+    assert seen["fail_fast"] is False
+
+
+def test_antialiasing_is_forwarded(pytestconfig, request, tmp_path):
+    assertion, _failures = _assertion(pytestconfig, request, tmp_path)
+    seen: dict[str, object] = {}
+
+    class _Matcher:
+        name = "odiff"
+
+        def compare(self, baseline_path, actual_path, diff_output_path, **kwargs):
+            seen.update(kwargs)
+            return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
+
+    assertion._matcher = _Matcher()
+    assertion(_png_bytes())
+    seen.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(), antialiasing=True)
+
+    assert seen["antialiasing"] is True
+
+
+def test_odiff_forwards_antialiasing_flag(tmp_path):
+    captured: dict[str, object] = {}
+
+    class _Server:
+        def compare(self, base, compare, output, options):
+            captured["options"] = options
+            return {"match": True}
+
+    matcher = ODiffMatcher()
+    matcher._ensure_server = lambda: _Server()
+
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    base.write_bytes(_png_bytes())
+    actual.write_bytes(_png_bytes())
+
+    matcher.compare(base, actual, diff, threshold=0.1, antialiasing=True)
+
+    assert captured["options"] == {
+        "threshold": 0.1,
+        "failOnLayoutDiff": True,
+        "antialiasing": True,
+    }
+
+
+def test_assertion_kwargs_supply_defaults(pytestconfig, request, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        pytestconfig.option,
+        "playwright_visual_assertion_kwargs",
+        {"antialiasing": True, "pixel_percentage_threshold": 2},
+        raising=False,
+    )
+    assertion, failures = _assertion(pytestconfig, request, tmp_path)
+    assertion(_png_bytes())
+    failures.clear()
+    assertion._counter = 0
+
+    seen: dict[str, object] = {}
+
+    class _Matcher:
+        name = "pixelmatch"
+
+        def compare(self, baseline_path, actual_path, diff_output_path, **kwargs):
+            seen.update(kwargs)
+            return MatchResult(matched=False, score=1, diff_percentage=1)
+
+    assertion._matcher = _Matcher()
+    assertion(_png_bytes())
+
+    assert seen["antialiasing"] is True
+    assert failures == []
+
+    seen.clear()
+    failures.clear()
+    assertion._counter = 0
+    assertion(_png_bytes(), pixel_percentage_threshold=0.5, antialiasing=False)
+
+    assert seen["antialiasing"] is False
+    assert any("DO NOT match" in failure for failure in failures)
+
+
+def test_unknown_assertion_kwarg_fails(pytestconfig, request, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        pytestconfig.option,
+        "playwright_visual_assertion_kwargs",
+        {"not_a_real_option": True},
+        raising=False,
+    )
+
+    with pytest.raises(AssertionError, match="unknown assert_snapshot defaults"):
+        _assertion(pytestconfig, request, tmp_path)
+
+
+def test_assertion_kwargs_config_supplies_defaults(testdir: pytest.Testdir):
+    testdir.makeconftest(
+        """
+        def pytest_configure(config):
+            config.option.playwright_visual_assertion_kwargs = {
+                "pixel_percentage_threshold": 50,
+            }
+        """
+    )
+    testdir.makepyfile(
+        """
+        from io import BytesIO
+
+        from PIL import Image
+
+        def _png(pixel=None):
+            image = Image.new("RGBA", (10, 10), (255, 0, 0, 255))
+            if pixel is not None:
+                image.putpixel((0, 0), pixel)
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            return buffer.getvalue()
+
+        def test_budget(assert_snapshot):
+            assert_snapshot(_png(), name="same.png")
+            assert_snapshot(_png((0, 0, 255, 255)), name="one-pixel.png")
+        """
+    )
+
+    created = testdir.runpytest()
+    created.assert_outcomes(passed=1, errors=1)
+
+    compared = testdir.runpytest()
+    compared.assert_outcomes(passed=1)
+
+
+def test_fixture_override_binds_default_kwargs(testdir: pytest.Testdir):
+    testdir.makeconftest(
+        """
+        from functools import partial
+
+        import pytest
+
+        @pytest.fixture
+        def assert_snapshot(assert_snapshot):
+            return partial(assert_snapshot, pixel_percentage_threshold=50, antialiasing=True)
+        """
+    )
+    testdir.makepyfile(
+        """
+        from io import BytesIO
+
+        from PIL import Image
+
+        def _png(pixel=None):
+            image = Image.new("RGBA", (10, 10), (255, 0, 0, 255))
+            if pixel is not None:
+                image.putpixel((0, 0), pixel)
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            return buffer.getvalue()
+
+        def test_budget(assert_snapshot):
+            assert_snapshot(_png(), name="same.png")
+            assert_snapshot(_png((0, 0, 255, 255)), name="one-pixel.png")
+        """
+    )
+
+    created = testdir.runpytest()
+    created.assert_outcomes(passed=1, errors=1)
+
+    compared = testdir.runpytest()
+    compared.assert_outcomes(passed=1)
+
+
+def _path_without_odiff(monkeypatch: pytest.MonkeyPatch) -> None:
+    entries = [
+        entry
+        for entry in os.environ.get("PATH", "").split(os.pathsep)
+        if entry and not (Path(entry) / "odiff").is_file()
+    ]
+    monkeypatch.setenv("PATH", os.pathsep.join(entries))
+
+
+def test_missing_odiff_binary_fails_the_session(
+    testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
+):
+    _path_without_odiff(monkeypatch)
+    testdir.makeini(
+        """
+        [pytest]
+        playwright_visual_matcher = odiff
+        """
+    )
+    testdir.makepyfile(
+        """
+        def test_snapshot(assert_snapshot):
+            assert_snapshot(b"unused")
+        """
+    )
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(errors=1)
+    result.stdout.fnmatch_lines(["*ODiffBinaryNotFoundError*"])
+
+
+def test_disabled_snapshots_skip_missing_odiff_binary(
+    testdir: pytest.Testdir, monkeypatch: pytest.MonkeyPatch
+):
+    _path_without_odiff(monkeypatch)
+    testdir.makeini(
+        """
+        [pytest]
+        playwright_visual_matcher = odiff
+        playwright_visual_disable_snapshots = true
+        """
+    )
+    testdir.makepyfile(
+        """
+        def test_snapshot(assert_snapshot):
+            assert_snapshot(b"unused")
+        """
+    )
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=1)

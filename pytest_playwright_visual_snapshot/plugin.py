@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, TypeVar
 
 import pytest
@@ -17,7 +18,8 @@ from pytest_plugin_utils import (
     set_pytest_option,
 )
 
-from .matchers import get_matcher
+from .matchers import MatchResult, get_matcher
+from .matchers.odiff_matcher import ODiffMatcher
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -27,12 +29,76 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 NAMESPACE = "pytest_playwright_visual_snapshot"
+_ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
+    {
+        "threshold": None,
+        "name": None,
+        "fail_fast": False,
+        "mask_elements": None,
+        "reset_scroll": False,
+        "pixel_percentage_threshold": None,
+        "pixel_threshold": None,
+        "antialiasing": False,
+    }
+)
+_ASSERTION_KWARGS = frozenset(_ASSERTION_KWARG_DEFAULTS)
 
 T = TypeVar("T")
 
 
+class _Missing:
+    """Marks an assert_snapshot argument the caller did not pass."""
+
+
+_MISSING = _Missing()
+
+
+def _resolve_assertion_kwarg_precedence[T](
+    assertion_kwargs: dict[str, Any],
+    name: str,
+    explicit: T | _Missing,
+) -> T:
+    """Passed keyword, then configured kwarg default, then built-in default.
+
+    `_Missing` means the caller omitted the keyword, so an explicit False or
+    None still wins. The configured default is
+    `playwright_visual_assertion_kwargs`. Built-in defaults are
+    `_ASSERTION_KWARG_DEFAULTS`.
+    """
+    if isinstance(explicit, _Missing):
+        if name in assertion_kwargs:
+            return assertion_kwargs[name]
+
+        return _ASSERTION_KWARG_DEFAULTS[name]
+
+    return explicit
+
+
 def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
+
+
+def diff_is_within_allowance(
+    result: MatchResult,
+    *,
+    pixel_percentage_threshold: float | None,
+    pixel_threshold: int | None,
+) -> bool:
+    if result.matched or result.size_mismatch:
+        return False
+
+    if pixel_percentage_threshold is None and pixel_threshold is None:
+        return False
+
+    if pixel_percentage_threshold is not None and (
+        result.diff_percentage is None
+        or result.diff_percentage >= pixel_percentage_threshold
+    ):
+        return False
+
+    return pixel_threshold is None or (
+        result.score is not None and result.score <= pixel_threshold
+    )
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -108,6 +174,15 @@ def pytest_addoption(parser: Parser) -> None:
         "playwright_visual_screenshot_kwargs",
         default={},
         help="Dictionary of kwargs to pass to Playwright's screenshot method",
+        available=None,  # Runtime only
+        type_hint=dict,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        "playwright_visual_assertion_kwargs",
+        default={},
+        help="Default keyword arguments for assert_snapshot",
         available=None,  # Runtime only
         type_hint=dict,
     )
@@ -285,6 +360,19 @@ class AssertSnapshot:
             )
             or {}
         )
+        self._assertion_kwargs = (
+            get_pytest_option(
+                NAMESPACE,
+                pytestconfig,
+                "playwright_visual_assertion_kwargs",
+                type_hint=dict,
+            )
+            or {}
+        )
+        unknown_assertion_kwargs = set(self._assertion_kwargs) - _ASSERTION_KWARGS
+        assert not unknown_assertion_kwargs, (
+            f"unknown assert_snapshot defaults: {sorted(unknown_assertion_kwargs)}"
+        )
         self._update_snapshot = bool(
             get_pytest_option(
                 NAMESPACE,
@@ -329,12 +417,46 @@ class AssertSnapshot:
         self,
         img_or_page: bytes | Any,
         *,
-        threshold: float | None = None,
-        name: str | None = None,
-        fail_fast: bool = False,
-        mask_elements: list[str] | None = None,
-        reset_scroll: bool = False,
+        # TODO: rename threshold to color_threshold, including
+        # playwright_visual_snapshot_threshold
+        threshold: float | None | _Missing = _MISSING,
+        name: str | None | _Missing = _MISSING,
+        fail_fast: bool | _Missing = _MISSING,
+        mask_elements: list[str] | None | _Missing = _MISSING,
+        reset_scroll: bool | _Missing = _MISSING,
+        pixel_percentage_threshold: float | None | _Missing = _MISSING,
+        pixel_threshold: int | None | _Missing = _MISSING,
+        antialiasing: bool | _Missing = _MISSING,
     ) -> None:
+        # `_MISSING` lets playwright_visual_assertion_kwargs set global defaults.
+        # An explicit keyword still wins, including False and None.
+        threshold_value: float | None = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "threshold", threshold
+        )
+        snapshot_name: str | None = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "name", name
+        )
+        fail_fast_enabled: bool = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "fail_fast", fail_fast
+        )
+        mask_selectors: list[str] | None = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "mask_elements", mask_elements
+        )
+        reset_scroll_enabled: bool = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "reset_scroll", reset_scroll
+        )
+        pixel_percentage_limit: float | None = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs,
+            "pixel_percentage_threshold",
+            pixel_percentage_threshold,
+        )
+        pixel_limit: int | None = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "pixel_threshold", pixel_threshold
+        )
+        ignore_antialiasing: bool = _resolve_assertion_kwarg_precedence(
+            self._assertion_kwargs, "antialiasing", antialiasing
+        )
+
         if self._disable_snapshots:
             if not self._warned_disabled:
                 logger.warning(
@@ -344,26 +466,31 @@ class AssertSnapshot:
                 self._warned_disabled = True
             return
 
-        if not name:
+        if not snapshot_name:
             if self._counter > 0:
-                name = f"{self._test_name}_{self._counter}.png"
+                snapshot_name = f"{self._test_name}_{self._counter}.png"
             else:
-                name = f"{self._test_name}.png"
+                snapshot_name = f"{self._test_name}.png"
         else:
-            _, ext = os.path.splitext(name)
+            _, ext = os.path.splitext(snapshot_name)
             if ext.lower() not in [".png", ".jpg", ".jpeg", ".webp"]:
-                name = f"{name}.png"
+                snapshot_name = f"{snapshot_name}.png"
 
         # Use global threshold if no local threshold provided
-        if not threshold:
-            threshold = self._global_snapshot_threshold
+        if not threshold_value:
+            threshold_value = self._global_snapshot_threshold
+
+        # fail_fast stops after the first pixel, so a pixel or percentage budget would be wrong.
+        compare_fail_fast = fail_fast_enabled
+        if pixel_percentage_limit is not None or pixel_limit is not None:
+            compare_fail_fast = False
 
         # If page reference is passed, use screenshot
         if isinstance(img_or_page, (Locator, SyncPage)):
             # Combine configured mask elements with any provided in the function call
             all_mask_selectors = list(self._mask_selectors)
-            if mask_elements:
-                all_mask_selectors.extend(mask_elements)
+            if mask_selectors:
+                all_mask_selectors.extend(mask_selectors)
 
             # Convert selectors to locators
             masks = (
@@ -381,7 +508,7 @@ class AssertSnapshot:
                 **self._screenshot_kwargs,
             }
 
-            if isinstance(img_or_page, SyncPage) and reset_scroll:
+            if isinstance(img_or_page, SyncPage) and reset_scroll_enabled:
                 img_or_page.evaluate("window.scrollTo(0, 0)")
 
             img = img_or_page.screenshot(**screenshot_kwargs)
@@ -394,7 +521,7 @@ class AssertSnapshot:
         snapshot_dir = get_artifact_dir(
             self._request.node, self._snapshots_base_dir, create=True
         )
-        screenshot_file = snapshot_dir / name
+        screenshot_file = snapshot_dir / snapshot_name
 
         # increment counter before any failures are recorded
         self._counter += 1
@@ -416,30 +543,37 @@ class AssertSnapshot:
         failure_dir = get_artifact_dir(
             self._request.node, self._failures_base_dir, create=True
         )
-        actual_path = failure_dir / f"actual_{name}"
+        actual_path = failure_dir / f"actual_{snapshot_name}"
         actual_path.write_bytes(img)
+        diff_path = failure_dir / f"diff_{snapshot_name}"
 
         result = self._matcher.compare(
             baseline_path=screenshot_file,
             actual_path=actual_path,
-            diff_output_path=failure_dir / f"diff_{name}",
-            threshold=threshold,
-            fail_fast=fail_fast,
+            diff_output_path=diff_path,
+            threshold=threshold_value,
+            fail_fast=compare_fail_fast,
+            antialiasing=ignore_antialiasing,
         )
 
-        if result.matched:
+        if result.matched or diff_is_within_allowance(
+            result,
+            pixel_percentage_threshold=pixel_percentage_limit,
+            pixel_threshold=pixel_limit,
+        ):
             actual_path.unlink(missing_ok=True)
+            diff_path.unlink(missing_ok=True)
             return
 
         if result.size_mismatch and not self._ignore_size_diff:
             msg = (
-                f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}"
+                f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {snapshot_name}"
                 f" (Image sizes do not match: {result.actual_size} vs {result.baseline_size})"
             )
             self._failures.append(msg)
             if is_ci_environment():
                 screenshot_file.write_bytes(img)
-            if fail_fast:
+            if fail_fast_enabled:
                 pytest.fail(msg)
             return
 
@@ -449,17 +583,49 @@ class AssertSnapshot:
             )
 
         img_b = Image.open(screenshot_file)
-        img_b.save(f"{failure_dir}/expected_{name}")
+        img_b.save(f"{failure_dir}/expected_{snapshot_name}")
 
         if is_ci_environment():
             screenshot_file.write_bytes(img)
 
-        if fail_fast:
-            pytest.fail(f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}")
+        if fail_fast_enabled:
+            pytest.fail(
+                f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {snapshot_name}"
+            )
 
         self._failures.append(
-            f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {name}"
+            f"{SNAPSHOT_MESSAGE_PREFIX} Snapshots DO NOT match! {snapshot_name}"
         )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def require_odiff_binary(pytestconfig: Config) -> None:
+    # Fail at session start. The first snapshot is saved before compare(), so a missing binary would not fail that run.
+    # Disabled snapshots never start odiff, so a missing binary is fine.
+    snapshots_disabled = bool(
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_disable_snapshots",
+            type_hint=bool,
+        )
+    )
+    if snapshots_disabled:
+        return
+
+    matcher_name = (
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_matcher",
+            type_hint=str,
+        )
+        or "pixelmatch"
+    )
+    if matcher_name != "odiff":
+        return
+
+    ODiffMatcher().require_binary()
 
 
 @pytest.fixture

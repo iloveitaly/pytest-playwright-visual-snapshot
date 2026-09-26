@@ -139,6 +139,50 @@ def pytest_configure(config: Config):
     }
 ```
 
+### odiff, antialiasing, and diff allowance
+
+`playwright_visual_matcher` selects the comparison engine. `pixelmatch` is the default. `odiff` uses the [`odiff`](https://github.com/dmtrKovalenko/odiff) binary on `PATH`.
+
+You can install the binary through [mise](https://mise.jdx.dev/). If this matcher is selected and the binary is missing, pytest raises `ODiffBinaryNotFoundError` before comparisons run. Disabling snapshots skips that check.
+
+```toml
+[tools]
+"github:dmtrKovalenko/odiff" = "latest"
+```
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_matcher = "odiff"
+```
+
+Here are the options you can configure on the assertion call:
+
+- `threshold` is the per-pixel color distance, from `0` to `1`, for both matchers.
+- `pixel_percentage_threshold` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match.
+- `pixel_threshold` is an absolute cap on differing pixels. `1` allows a single differing pixel.
+- `antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
+
+`pixel_percentage_threshold` and `pixel_threshold` apply to every matcher. When both are set, the diff has to sit inside both caps. Leave both unset to require every pixel to match.
+
+```python
+assert_snapshot(
+    page, antialiasing=True, pixel_percentage_threshold=0.01, pixel_threshold=20
+)
+```
+
+Configure the same options as defaults in `conftest.py`:
+
+```python
+def pytest_configure(config: Config):
+    config.option.playwright_visual_assertion_kwargs = {
+        "antialiasing": True,
+        "pixel_percentage_threshold": 0.01,
+        "pixel_threshold": 20,
+    }
+```
+
+A later call can still override a default: `assert_snapshot(page, pixel_percentage_threshold=1)`.
+
 ### Disabling Visual Snapshots Locally
 
 If CI screenshots are the source of truth, you can disable local visual assertions to keep developer runs fast and avoid creating/comparing snapshots; use `pytest --disable-visual-snapshots` (or set `playwright_visual_disable_snapshots = true` in `pytest.ini`). When disabled, `assert_snapshot` is a noop and logs a warning.
@@ -216,11 +260,14 @@ cp -R ${PLAYWRIGHT_RESULT_DIRECTORY}/${failed_run_id}/test-results/${PLAYWRIGHT_
 
 ## API
 
-### Fixture Parameters
+### Snapshot Assertion Parameters
 
-- `threshold` - sets the threshold for the comparison of the screenshots:`0` to `1`. Default is `0.1`
+- `threshold` - per-pixel color distance, `0` to `1`. Default is `0.1`
+- `pixel_percentage_threshold` - diffs below this percent of pixels match, on a 0-100 scale. Unset means no percentage cap
+- `pixel_threshold` - maximum number of differing pixels that still match. Unset means no pixel cap. When set with `pixel_percentage_threshold`, both caps apply
+- `antialiasing` - odiff only. When `True`, odiff ignores antialiased pixels. Default is `False`. pixelmatch already ignores them, so this argument does not change pixelmatch results
 <!-- - `name` - `.png` extensions only. Default is `test_name[browser][os].png` (recommended) -->
-- `fail_fast` - If `True`, will fail after first different pixel. `False` by default
+- `fail_fast` - If `True`, will fail after first different pixel. `False` by default. A full pixel count is used when `pixel_percentage_threshold` or `pixel_threshold` is set
 - `mask_elements` - List of CSS selectors to mask during screenshot capture. These will be combined with any globally configured masks.
 - `reset_scroll` - If `True`, scrolls the page to `(0, 0)` before capturing a `Page` screenshot. Useful when prior test actions leave the viewport scrolled. Default is `False`.
 
