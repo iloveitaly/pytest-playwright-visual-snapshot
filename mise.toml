@@ -5,6 +5,7 @@ uv = "latest"
 direnv = "latest"
 gitleaks = "latest"
 "github:casey/just" = "latest"
+"github:dmtrKovalenko/odiff" = "latest"
 
 [bootstrap.packages]
 "apt:zsh" = { os = "linux" }
