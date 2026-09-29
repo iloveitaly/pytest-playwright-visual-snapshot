@@ -98,7 +98,7 @@ def test_multiple_snapshots_in_test(browser_name: str, testdir: pytest.Testdir) 
     testdir.makepyfile(
         """
         def test_multiple_snapshots(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content("<html><body><h1>Example Domain</h1><p>Snapshot test content</p></body></html>")
             assert_snapshot(page)
             page.evaluate("document.querySelector('h1').textContent = 'Modified Example'")
             assert_snapshot(page)
