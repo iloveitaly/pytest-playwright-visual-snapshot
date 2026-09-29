@@ -3,14 +3,16 @@ General tests for the snapshot system
 """
 
 import pytest
-import requests
 
 from tests.conftest import (
     assert_file_exists_message,
     assert_single_snapshot_dir,
+    copy_fixture_to_testdir,
     get_expected_filename,
     get_failures_dir,
     get_snapshots_dir,
+    read_fixture_bytes,
+    read_fixture_text,
 )
 
 
@@ -20,10 +22,11 @@ from tests.conftest import (
 )
 def test_filepath_exists(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that a snapshot file is created when it doesn't exist initially."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot())
         """
     )
@@ -47,10 +50,11 @@ def test_filepath_exists(browser_name: str, testdir: pytest.Testdir) -> None:
 )
 def test_compare_pass(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that snapshot comparison passes after initial creation."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot())
         """
     )
@@ -75,10 +79,11 @@ def test_custom_image_name_generated(
     browser_name: str, testdir: pytest.Testdir
 ) -> None:
     """Test that a snapshot with a custom name is generated correctly."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot(), name="test.png")
         """
     )
@@ -103,10 +108,11 @@ def test_custom_image_name_generated(
 )
 def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that snapshot comparison fails when the image is modified."""
+    image_uri = copy_fixture_to_testdir(testdir, "placeholder-white.png")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://placehold.co/250x250/FFFFFF/000000/png")
+            page.goto({image_uri!r})
             element = page.query_selector('img')
             assert_snapshot(element.screenshot())
         """
@@ -133,7 +139,7 @@ def test_compare_fail(browser_name: str, testdir: pytest.Testdir) -> None:
     ).resolve()
 
     assert filepath.exists()
-    img = requests.get("https://placehold.co/250x250/000000/FFFFFF/png").content
+    img = read_fixture_bytes("placeholder-black.png")
     filepath.write_bytes(img)
 
     result = testdir.runpytest("--browser", browser_name)
@@ -275,10 +281,11 @@ def test_size_mismatch_updates_snapshot_on_ci(
 )
 def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test snapshot comparison with fail_fast enabled."""
+    image_uri = copy_fixture_to_testdir(testdir, "placeholder-white.png")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://placehold.co/250x250/FFFFFF/000000/png")
+            page.goto({image_uri!r})
             element = page.query_selector('img')
             assert_snapshot(element.screenshot(), fail_fast=True)
         """
@@ -299,7 +306,7 @@ def test_compare_with_fail_fast(browser_name: str, testdir: pytest.Testdir) -> N
 
     assert filepath.exists()
 
-    img = requests.get("https://placehold.co/250x250/000000/FFFFFF/png").content
+    img = read_fixture_bytes("placeholder-black.png")
     filepath.write_bytes(img)
     result = testdir.runpytest("--browser", browser_name)
 
@@ -317,10 +324,11 @@ def test_actual_expected_diff_images_generated(
     browser_name: str, testdir: pytest.Testdir
 ) -> None:
     """Test that actual, expected, and diff images are generated on snapshot mismatch."""
+    image_uri = copy_fixture_to_testdir(testdir, "placeholder-black.png")
     testdir.makepyfile(
-        """
+        f"""
         def test_snapshot(page, assert_snapshot):
-            page.goto("https://placehold.co/250x250/000000/FFFFFF/png")
+            page.goto({image_uri!r})
             element = page.query_selector('img')
             assert_snapshot(element.screenshot())
         """
@@ -341,7 +349,7 @@ def test_actual_expected_diff_images_generated(
     ).resolve()
 
     assert filepath.exists(), assert_file_exists_message(filepath)
-    img = requests.get("https://placehold.co/250x250/FFFFFF/000000/png").content
+    img = read_fixture_bytes("placeholder-white.png")
     filepath.write_bytes(img)
 
     result = testdir.runpytest("--browser", browser_name)

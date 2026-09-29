@@ -13,6 +13,29 @@ project_root = pathlib.Path(__file__).parent.parent
 os.environ["COVERAGE_PROCESS_START"] = str(project_root / "pyproject.toml")
 os.environ["COVERAGE_FILE"] = str(project_root / ".coverage")
 
+FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
+
+
+def read_fixture_text(name: str) -> str:
+    """Return the text of a local fixture file (no network access)."""
+    return (FIXTURES_DIR / name).read_text()
+
+
+def read_fixture_bytes(name: str) -> bytes:
+    """Return the bytes of a local fixture file (no network access)."""
+    return (FIXTURES_DIR / name).read_bytes()
+
+
+def copy_fixture_to_testdir(testdir, name: str) -> str:
+    """Copy a fixture file into the testdir and return its file:// URI.
+
+    Inner pytester tests run in an isolated tmpdir, so fixtures must live
+    there to be reachable via page.goto().
+    """
+    dest = pathlib.Path(str(testdir.tmpdir)) / name
+    dest.write_bytes(read_fixture_bytes(name))
+    return dest.as_uri()
+
 
 def get_snapshots_dir(testdir) -> pathlib.Path:
     """Return the snapshots directory for a given testdir."""

@@ -1,12 +1,14 @@
 from pathlib import Path
 
 import pytest
-import requests
 
 from tests.conftest import (
     assert_single_snapshot_dir,
+    copy_fixture_to_testdir,
     get_expected_filename,
     get_snapshots_dir,
+    read_fixture_bytes,
+    read_fixture_text,
 )
 
 _ODIFF_FLAG = "--override-ini=playwright_visual_matcher=odiff"
@@ -18,10 +20,11 @@ _ODIFF_FLAG = "--override-ini=playwright_visual_matcher=odiff"
 )
 def test_element_masking(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that element masking works as expected."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_masked_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             page.evaluate('''
                 const timeElement = document.createElement('div');
                 timeElement.className = 'timestamp';
@@ -51,10 +54,11 @@ def test_element_masking(browser_name: str, testdir: pytest.Testdir) -> None:
 )
 def test_threshold_setting(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that threshold setting works for comparison tolerance."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_threshold_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page, threshold=0.8)
         """
     )
@@ -65,9 +69,9 @@ def test_threshold_setting(browser_name: str, testdir: pytest.Testdir) -> None:
     result.assert_outcomes(passed=1, errors=1)
 
     testdir.makepyfile(
-        """
+        f"""
         def test_threshold_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             page.evaluate("document.body.style.backgroundColor = 'rgb(254, 254, 254)'")
             assert_snapshot(page, threshold=0.8)
         """
@@ -77,9 +81,9 @@ def test_threshold_setting(browser_name: str, testdir: pytest.Testdir) -> None:
     result.assert_outcomes(passed=1)
 
     testdir.makepyfile(
-        """
+        f"""
         def test_threshold_snapshot(page, assert_snapshot):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             page.evaluate("document.body.style.backgroundColor = 'rgb(254, 254, 254)'")
             assert_snapshot(page, threshold=0.001)
         """
@@ -95,10 +99,11 @@ def test_threshold_setting(browser_name: str, testdir: pytest.Testdir) -> None:
 )
 def test_multiple_snapshots_in_test(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test taking multiple snapshots in a single test case."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         def test_multiple_snapshots(page, assert_snapshot):
-            page.set_content("<html><body><h1>Example Domain</h1><p>Snapshot test content</p></body></html>")
+            page.set_content({page_html!r})
             assert_snapshot(page)
             page.evaluate("document.querySelector('h1').textContent = 'Modified Example'")
             assert_snapshot(page)
@@ -128,10 +133,11 @@ def test_multiple_snapshots_in_test(browser_name: str, testdir: pytest.Testdir) 
 )
 def test_fail_fast_option(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test the fail_fast option for early termination on mismatch."""
+    image_uri = copy_fixture_to_testdir(testdir, "placeholder-white.png")
     testdir.makepyfile(
-        """
+        f"""
         def test_fail_fast(page, assert_snapshot):
-            page.goto("https://placehold.co/250x250/FFFFFF/000000/png")
+            page.goto({image_uri!r})
             element = page.query_selector('img')
             assert_snapshot(element.screenshot(), fail_fast=True)
         """
@@ -148,7 +154,7 @@ def test_fail_fast_option(browser_name: str, testdir: pytest.Testdir) -> None:
     assert len(snapshot_dirs) == 1
     filepath = snapshot_dirs[0] / get_expected_filename("test_fail_fast", browser_name)
 
-    img = requests.get("https://placehold.co/250x250/000000/FFFFFF/png").content
+    img = read_fixture_bytes("placeholder-black.png")
     filepath.write_bytes(img)
 
     result = testdir.runpytest("--browser", browser_name, _ODIFF_FLAG)
@@ -165,13 +171,14 @@ def test_fail_fast_option(browser_name: str, testdir: pytest.Testdir) -> None:
 )
 def test_parametrized_tests(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that parametrized tests generate correct snapshot names."""
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         import pytest
 
         @pytest.mark.parametrize("theme", ["light", "dark"])
         def test_themes(page, assert_snapshot, theme):
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
 
             if theme == "dark":
                 page.evaluate('''

@@ -4,6 +4,7 @@ from tests.conftest import (
     assert_single_snapshot_dir,
     get_failures_dir,
     list_directory_contents,
+    read_fixture_text,
 )
 
 
@@ -14,13 +15,14 @@ from tests.conftest import (
 def test_failures_are_written(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that failure images are written to the failures directory when a test fails."""
     # Create test file that will generate a snapshot and then fail
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         import pytest
 
         def test_snapshot(page, assert_snapshot):
             # First create a baseline snapshot
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot(), name="failure_test.png")
 
             # Modify content to cause mismatch
@@ -62,13 +64,14 @@ def test_failures_are_cleaned_on_update(
 ) -> None:
     """Test that failures directory is cleaned when snapshots are updated."""
     # Create test file
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         import pytest
 
         def test_snapshot(page, assert_snapshot):
             # Create initial snapshot
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot(), name="cleanup_test.png")
 
             # Modify content to cause mismatch
@@ -112,13 +115,14 @@ def test_failures_are_cleaned_on_update(
 def test_multiple_failures_in_test(browser_name: str, testdir: pytest.Testdir) -> None:
     """Test that multiple failures in a single test create multiple failure artifacts."""
     # Create test file with multiple assertions
+    page_html = read_fixture_text("example.html")
     testdir.makepyfile(
-        """
+        f"""
         import pytest
 
         def test_multiple_snapshots(page, assert_snapshot):
             # Create initial snapshots
-            page.goto("https://example.com")
+            page.set_content({page_html!r})
             assert_snapshot(page.screenshot(), name="multiple_test_1.png")
             assert_snapshot(page.screenshot(), name="multiple_test_2.png")
             assert_snapshot(page.screenshot(), name="multiple_test_3.png")
