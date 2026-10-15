@@ -2,6 +2,9 @@
 set shell := ["zsh", "-euo", "pipefail", "-c"]
 set script-interpreter := ["zsh", "-euo", "pipefail"]
 
+# Ensure gh commands never trigger an interactive pager
+export GH_PAGER := "cat"
+
 # Set up the Python environment, done automatically for you when using direnv
 setup:
     [ -f .env ] || cp .env-example .env
@@ -21,11 +24,13 @@ docker_up:
 docker_down:
 	docker compose down
 
-# Upgrade tool versions, python dependencies, and optionally bump pyproject.toml constraints
+# Switch stale mise backends, upgrade tool versions and python dependencies, and optionally bump pyproject.toml constraints
 [script]
 [arg("bump_constraints", long="bump-constraints", value="true", help="Bump pyproject.toml minimum constraints using uv-bump")]
 upgrade bump_constraints="false":
     mise self-update --yes
+    # Upgrade keeps the backend recorded in mise.lock. Switch first so the bump installs from the registry's current backend.
+    mise backends switch --yes
     mise upgrade --yes --local
     uv sync --all-groups --all-extras -U
 
@@ -169,8 +174,7 @@ github_last_build_failure:
     if [[ "$CONCLUSION" == "success" ]]; then
         echo "latest build succeeded"
     else
-        # Force cat pager to output logs directly to terminal
-        GH_PAGER=cat gh run view "$ID" --log-failed
+        gh run view "$ID" --log-failed
     fi
 
 # Rerun only failed jobs for the last failed 'build' workflow for the current branch
