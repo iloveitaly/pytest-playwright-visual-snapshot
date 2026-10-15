@@ -162,4 +162,4 @@ provenance = "github-attestations"
 
 [[tools.uv]]
 version = "0.13.1"
-backend = "asdf:uv"
+backend = "aqua:astral-sh/uv"
