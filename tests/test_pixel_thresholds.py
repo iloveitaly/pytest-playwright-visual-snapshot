@@ -1,6 +1,7 @@
 """Diff allowance and odiff antialiasing configuration."""
 
 import os
+import sys
 from functools import partial
 from io import BytesIO
 from pathlib import Path
@@ -31,7 +32,7 @@ def _png_bytes(color=(255, 0, 0, 255), pixel=None) -> bytes:
 
 def _assertion(pytestconfig, request, tmp_path):
     failures: list[str] = []
-    assertion = AssertSnapshot(pytestconfig, request, failures)
+    assertion = AssertSnapshot(pytestconfig, request, failures, sys.platform)
     assertion._snapshots_base_dir = tmp_path / "snapshots"
     assertion._failures_base_dir = tmp_path / "failures"
     assertion._test_name = "budget"

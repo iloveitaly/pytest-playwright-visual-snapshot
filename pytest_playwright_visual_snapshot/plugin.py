@@ -5,10 +5,11 @@ import sys
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
+from weakref import WeakKeyDictionary
 
 import pytest
 from PIL import Image
-from playwright.sync_api import Locator
+from playwright.sync_api import Browser, Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 from pytest_plugin_utils import (
@@ -42,6 +43,8 @@ _ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     }
 )
 _ASSERTION_KWARGS = frozenset(_ASSERTION_KWARG_DEFAULTS)
+_BROWSER_FIXTURE_NAMES = ("browser", "context", "page", "new_context")
+_snapshot_platform_by_browser: WeakKeyDictionary[Browser, str] = WeakKeyDictionary()
 
 T = TypeVar("T")
 
@@ -76,6 +79,127 @@ def _resolve_assertion_kwarg_precedence[T](
 
 def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
+
+
+def _playwright_inspector_enabled() -> bool:
+    # PWDEBUG=1 pauses the first page call. console logging does not.
+    mode = os.environ.get("PWDEBUG", "")
+    return mode not in ("", "0", "false", "console")
+
+
+def platform_suffix_from_chromium_user_agent(user_agent: str) -> str:
+    """Map a Chromium user agent onto the snapshot OS suffix.
+
+    `linux`, `darwin`, and `win32` are the `sys.platform` values existing
+    baselines already use. Chrome OS reports `CrOS` and uses `linux`.
+    """
+    if "Windows" in user_agent:
+        return "win32"
+
+    if "Macintosh" in user_agent or "Mac OS" in user_agent:
+        return "darwin"
+
+    if "Linux" in user_agent or "CrOS" in user_agent:
+        return "linux"
+
+    raise AssertionError(f"unknown chromium user agent {user_agent}")
+
+
+def platform_suffix_from_navigator_platform(navigator_platform: str) -> str:
+    """Map `navigator.platform` onto the snapshot OS suffix."""
+    if navigator_platform.startswith("Linux"):
+        return "linux"
+
+    if navigator_platform.startswith("Mac"):
+        return "darwin"
+
+    if navigator_platform.startswith("Win"):
+        return "win32"
+
+    raise AssertionError(f"unknown browser platform {navigator_platform}")
+
+
+def _chromium_snapshot_platform(browser: Browser) -> str:
+    # Browser.getVersion is the browser process, so connect() and connect_over_cdp
+    # report the machine running Chrome rather than the pytest host.
+    session = browser.new_browser_cdp_session()
+    try:
+        version = session.send("Browser.getVersion")
+    finally:
+        session.detach()
+
+    user_agent = version["userAgent"]
+    assert isinstance(user_agent, str)
+
+    return platform_suffix_from_chromium_user_agent(user_agent)
+
+
+def _navigator_snapshot_platform(browser: Browser) -> str:
+    # WebKit's user agent says Macintosh on Linux. The page platform does not.
+    page = browser.new_page()
+    try:
+        navigator_platform = page.evaluate("() => navigator.platform")
+    finally:
+        page.close()
+
+    assert isinstance(navigator_platform, str)
+
+    return platform_suffix_from_navigator_platform(navigator_platform)
+
+
+def browser_snapshot_platform(browser: Browser) -> str:
+    """OS suffix for the browser that renders snapshots.
+
+    Chromium is read over CDP, including a remote Playwright or DevTools
+    connection. Firefox and WebKit read `navigator.platform` in that browser.
+    """
+    cached = _snapshot_platform_by_browser.get(browser)
+    if cached is not None:
+        return cached
+
+    if browser.browser_type.name == "chromium":
+        platform = _chromium_snapshot_platform(browser)
+    elif _playwright_inspector_enabled():
+        # The inspector pauses the first page call, so Firefox and WebKit
+        # cannot be probed while it is open. Chromium already used CDP above.
+        platform = sys.platform
+    else:
+        platform = _navigator_snapshot_platform(browser)
+
+    _snapshot_platform_by_browser[browser] = platform
+    logger.debug(f"Snapshot browser platform: {platform}")
+
+    return platform
+
+
+def _snapshots_disabled(pytestconfig: Config) -> bool:
+    return bool(
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_disable_snapshots",
+            type_hint=bool,
+        )
+    )
+
+
+def _test_requests_browser(request: FixtureRequest) -> bool:
+    return any(name in request.fixturenames for name in _BROWSER_FIXTURE_NAMES)
+
+
+def snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -> str:
+    """Browser OS when this test drives a browser, otherwise the pytest host.
+
+    Byte-only snapshots never open a browser, so there is no remote OS to read.
+    Disabled snapshots skip the probe.
+    """
+    if _snapshots_disabled(pytestconfig) or not _test_requests_browser(request):
+        return sys.platform
+
+    browser = request.getfixturevalue("browser")
+    assert isinstance(browser, Browser)
+
+    return browser_snapshot_platform(browser)
 
 
 def diff_is_within_allowance(
@@ -297,6 +421,7 @@ class AssertSnapshot:
         pytestconfig: Config,
         request: FixtureRequest,
         failures: list[str],
+        platform: str,
     ) -> None:
         self._pytestconfig = pytestconfig
         self._request = request
@@ -305,7 +430,7 @@ class AssertSnapshot:
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
-        self._test_name = f"{test_function_name}[{sys.platform!s}]"
+        self._test_name = f"{test_function_name}[{platform}]"
 
         # Resolve base directories for artifacts
         root_dir = Path(pytestconfig.rootdir)  # type: ignore
@@ -646,4 +771,5 @@ def assert_snapshot(
         pytestconfig=pytestconfig,
         request=request,
         failures=failures,
+        platform=snapshot_platform_for_test(pytestconfig, request),
     )
