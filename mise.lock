@@ -4,6 +4,36 @@
 version = "2.38.2"
 backend = "aqua:direnv/direnv"
 
+[tools.direnv."platforms.linux-arm64"]
+checksum = "sha256:ec2a32dbe2f19dd085bd9315a1b4ea88b55ec288aa7eabe8723490baf466cb23"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.linux-arm64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455481"
+
+[tools.direnv."platforms.linux-arm64-musl"]
+checksum = "sha256:ec2a32dbe2f19dd085bd9315a1b4ea88b55ec288aa7eabe8723490baf466cb23"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.linux-arm64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455481"
+
+[tools.direnv."platforms.linux-x64"]
+checksum = "sha256:148820a187930d36ca6a204504e5cdb30d8396cd1a97e64c3b3f10d793c11247"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.linux-amd64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455476"
+
+[tools.direnv."platforms.linux-x64-musl"]
+checksum = "sha256:148820a187930d36ca6a204504e5cdb30d8396cd1a97e64c3b3f10d793c11247"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.linux-amd64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455476"
+
+[tools.direnv."platforms.macos-arm64"]
+checksum = "sha256:30443c413e74614a53deb90234e9c97661b1041a0f4aca601ceb482a578ae8b6"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.darwin-arm64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455431"
+
+[tools.direnv."platforms.macos-x64"]
+checksum = "sha256:91ad9ce96e156065ba2c751a7392ee748fa8e49b063e14d7203df6e957c212f9"
+url = "https://github.com/direnv/direnv/releases/download/v2.38.2/direnv.darwin-amd64"
+url_api = "https://api.github.com/repos/direnv/direnv/releases/assets/627455432"
+
 [[tools."github:casey/just"]]
 version = "1.58.0"
 backend = "github:casey/just"
@@ -163,3 +193,45 @@ provenance = "github-attestations"
 [[tools.uv]]
 version = "0.13.1"
 backend = "aqua:astral-sh/uv"
+
+[tools.uv."platforms.linux-arm64"]
+checksum = "sha256:9041c73c99fdc5892cf128140beb354eca9231d502068cc36e6cb53a8e59ad14"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639312990"
+provenance = "github-attestations"
+
+[tools.uv."platforms.linux-arm64-musl"]
+checksum = "sha256:345a8308e4d1835cdfaadf692836fd3137a6d45864773f05ad7bf59442b1ba16"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313013"
+provenance = "github-attestations"
+
+[tools.uv."platforms.linux-x64"]
+checksum = "sha256:eadd9d27c134ab5ac1ffd4473b97a741407f3ea238288f03121fc4deddf90220"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313223"
+provenance = "github-attestations"
+
+[tools.uv."platforms.linux-x64-musl"]
+checksum = "sha256:6c86040a8f045ab9adc9e3ec4cdafa03fd00e9a988ed2bf28971c7fc2d0debd0"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313248"
+provenance = "github-attestations"
+
+[tools.uv."platforms.macos-arm64"]
+checksum = "sha256:cfe454573412ff7380d15fc7dae5997ab53ffce72fce0a78e91ddbc84001acd2"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639312976"
+provenance = "github-attestations"
+
+[tools.uv."platforms.macos-x64"]
+checksum = "sha256:bb7b805bdcf3d0bc8c74ceb94569e6b3e8aa35bd492acdbb9d46bf46d9d4ff6b"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313196"
+provenance = "github-attestations"
+
+[tools.uv."platforms.windows-x64"]
+checksum = "sha256:3b2661a463a5baea7f5076ea2b25ab71d77f36a6c0d809e5350651792f80a672"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313211"
+provenance = "github-attestations"
