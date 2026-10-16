@@ -244,6 +244,8 @@ PLAYWRIGHT_WS_ENDPOINT=ws://127.0.0.1:3000/ pytest
 
 Snapshot filenames use the OS of the connected browser. A Mac host attached to this container writes `[linux]`, the same suffix CI writes for that Linux browser. A browser launched on the host still uses the host OS.
 
+`PWDEBUG` is for a browser launched on the pytest host. The snapshot suffix is that host OS. Use the Docker browser without `PWDEBUG`.
+
 ### GitHub Actions Script
 
 Without a shared browser image, the CI Chrome will be slightly different than your dev chrome. You'll want to pull down screenshots from your CI run and use those for comparison. Here's a script to do that:
