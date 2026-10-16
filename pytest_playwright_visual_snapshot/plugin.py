@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import sys
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
@@ -20,6 +19,7 @@ from pytest_plugin_utils import (
 
 from .matchers import MatchResult, get_matcher
 from .matchers.odiff_matcher import ODiffMatcher
+from .platform import snapshot_platform_for_test
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -76,6 +76,17 @@ def _resolve_assertion_kwarg_precedence[T](
 
 def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
+
+
+def _snapshots_disabled(pytestconfig: Config) -> bool:
+    return bool(
+        get_pytest_option(
+            NAMESPACE,
+            pytestconfig,
+            "playwright_visual_disable_snapshots",
+            type_hint=bool,
+        )
+    )
 
 
 def diff_is_within_allowance(
@@ -297,6 +308,7 @@ class AssertSnapshot:
         pytestconfig: Config,
         request: FixtureRequest,
         failures: list[str],
+        platform: str,
     ) -> None:
         self._pytestconfig = pytestconfig
         self._request = request
@@ -305,7 +317,7 @@ class AssertSnapshot:
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
-        self._test_name = f"{test_function_name}[{sys.platform!s}]"
+        self._test_name = f"{test_function_name}[{platform}]"
 
         # Resolve base directories for artifacts
         root_dir = Path(pytestconfig.rootdir)  # type: ignore
@@ -646,4 +658,8 @@ def assert_snapshot(
         pytestconfig=pytestconfig,
         request=request,
         failures=failures,
+        platform=snapshot_platform_for_test(
+            request,
+            snapshots_disabled=_snapshots_disabled(pytestconfig),
+        ),
     )
