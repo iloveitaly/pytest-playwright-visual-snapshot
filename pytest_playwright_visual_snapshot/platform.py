@@ -1,3 +1,18 @@
+"""Choose the OS suffix stored in a snapshot filename.
+
+Baselines are named `test[browser][os].png`. `os` is `linux`, `darwin`, or `win32`, the same strings `sys.platform` produces, so a browser launched on the pytest host still matches files that already exist.
+
+The pixels come from the connected browser. A Mac running pytest against Chromium in a Linux container writes `[linux]`, the suffix CI writes for that browser. `sys.platform` on the pytest process would write `[darwin]` and miss those files.
+
+Chromium reads the browser-process user agent through CDP `Browser.getVersion`. That command follows `browser_type.connect()` and `connect_over_cdp`, and it does not open a page.
+
+Firefox and WebKit read `navigator.platform` in that browser. WebKit's user agent string says Macintosh on Linux, which would store those snapshots under `[darwin]`.
+
+`PWDEBUG` runs the inspector against a browser on the pytest host and pauses the first page call, so the suffix is the host OS. Use the Docker browser without `PWDEBUG`.
+
+A test that never requests a browser has no connection to read. Disabled snapshots skip the read. Both keep the pytest host OS.
+"""
+
 import logging
 import os
 import sys
