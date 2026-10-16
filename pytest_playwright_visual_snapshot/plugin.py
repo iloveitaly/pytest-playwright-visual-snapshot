@@ -152,17 +152,18 @@ def browser_snapshot_platform(browser: Browser) -> str:
 
     Chromium is read over CDP, including a remote Playwright or DevTools
     connection. Firefox and WebKit read `navigator.platform` in that browser.
+    `PWDEBUG` uses the pytest host OS. That mode is for a browser on the host.
     """
     cached = _snapshot_platform_by_browser.get(browser)
     if cached is not None:
         return cached
 
-    if browser.browser_type.name == "chromium":
-        platform = _chromium_snapshot_platform(browser)
-    elif _playwright_inspector_enabled():
-        # The inspector pauses the first page call, so Firefox and WebKit
-        # cannot be probed while it is open. Chromium already used CDP above.
+    # PWDEBUG is supported for a browser on the pytest host. The inspector
+    # pauses the first page call, so the suffix is the host OS.
+    if _playwright_inspector_enabled():
         platform = sys.platform
+    elif browser.browser_type.name == "chromium":
+        platform = _chromium_snapshot_platform(browser)
     else:
         platform = _navigator_snapshot_platform(browser)
 

@@ -78,7 +78,10 @@ class _Browser:
         self.browser_type = _BrowserType(name)
 
 
-def test_inspector_skips_firefox_page_probe(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("browser_name", ["chromium", "firefox", "webkit"])
+def test_inspector_uses_host_platform(
+    browser_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("PWDEBUG", "1")
     monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -89,8 +92,12 @@ def test_inspector_skips_firefox_page_probe(monkeypatch: pytest.MonkeyPatch) -> 
         "pytest_playwright_visual_snapshot.plugin._navigator_snapshot_platform",
         fail_if_probed,
     )
+    monkeypatch.setattr(
+        "pytest_playwright_visual_snapshot.plugin._chromium_snapshot_platform",
+        fail_if_probed,
+    )
 
-    assert browser_snapshot_platform(_Browser("firefox")) == "darwin"
+    assert browser_snapshot_platform(_Browser(browser_name)) == "darwin"
 
 
 @pytest.mark.parametrize("browser_name", ["chromium", "firefox", "webkit"])
