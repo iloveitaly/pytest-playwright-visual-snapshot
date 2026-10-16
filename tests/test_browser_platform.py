@@ -9,7 +9,7 @@ import playwright
 import pytest
 from playwright.sync_api import sync_playwright
 
-from pytest_playwright_visual_snapshot.plugin import (
+from pytest_playwright_visual_snapshot.platform import (
     browser_snapshot_platform,
     platform_suffix_from_chromium_user_agent,
     platform_suffix_from_navigator_platform,
@@ -89,11 +89,11 @@ def test_inspector_uses_host_platform(
         raise AssertionError(browser)
 
     monkeypatch.setattr(
-        "pytest_playwright_visual_snapshot.plugin._navigator_snapshot_platform",
+        "pytest_playwright_visual_snapshot.platform._navigator_snapshot_platform",
         fail_if_probed,
     )
     monkeypatch.setattr(
-        "pytest_playwright_visual_snapshot.plugin._chromium_snapshot_platform",
+        "pytest_playwright_visual_snapshot.platform._chromium_snapshot_platform",
         fail_if_probed,
     )
 
