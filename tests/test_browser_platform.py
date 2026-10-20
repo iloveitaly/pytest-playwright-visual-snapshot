@@ -11,41 +11,10 @@ from playwright.sync_api import sync_playwright
 
 from pytest_playwright_visual_snapshot.platform import (
     browser_snapshot_platform,
-    platform_suffix_from_chromium_user_agent,
     platform_suffix_from_navigator_platform,
 )
 
 from tests.conftest import get_snapshots_dir
-
-
-@pytest.mark.parametrize(
-    ("user_agent", "suffix"),
-    [
-        (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
-            "linux",
-        ),
-        (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-            "darwin",
-        ),
-        (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-            "win32",
-        ),
-        (
-            "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-            "linux",
-        ),
-    ],
-)
-def test_platform_suffix_from_chromium_user_agent(user_agent: str, suffix: str) -> None:
-    assert platform_suffix_from_chromium_user_agent(user_agent) == suffix
-
-
-def test_unknown_chromium_user_agent_fails() -> None:
-    with pytest.raises(AssertionError, match="unknown chromium user agent"):
-        platform_suffix_from_chromium_user_agent("Mozilla/5.0")
 
 
 @pytest.mark.parametrize(
@@ -55,6 +24,7 @@ def test_unknown_chromium_user_agent_fails() -> None:
         ("Linux aarch64", "linux"),
         ("MacIntel", "darwin"),
         ("Win32", "win32"),
+        ("CrOS x86_64", "linux"),
     ],
 )
 def test_platform_suffix_from_navigator_platform(
@@ -68,20 +38,11 @@ def test_unknown_navigator_platform_fails() -> None:
         platform_suffix_from_navigator_platform("FreeBSD")
 
 
-class _BrowserType:
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-
 class _Browser:
-    def __init__(self, name: str) -> None:
-        self.browser_type = _BrowserType(name)
+    pass
 
 
-@pytest.mark.parametrize("browser_name", ["chromium", "firefox", "webkit"])
-def test_inspector_uses_host_platform(
-    browser_name: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_inspector_uses_host_platform(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PWDEBUG", "1")
     monkeypatch.setattr(sys, "platform", "darwin")
 
@@ -92,12 +53,8 @@ def test_inspector_uses_host_platform(
         "pytest_playwright_visual_snapshot.platform._navigator_snapshot_platform",
         fail_if_probed,
     )
-    monkeypatch.setattr(
-        "pytest_playwright_visual_snapshot.platform._chromium_snapshot_platform",
-        fail_if_probed,
-    )
 
-    assert browser_snapshot_platform(_Browser(browser_name)) == "darwin"
+    assert browser_snapshot_platform(_Browser()) == "darwin"
 
 
 @pytest.mark.parametrize("browser_name", ["chromium", "firefox", "webkit"])
@@ -109,24 +66,17 @@ def test_live_browser_platform_ignores_host_platform(
     with sync_playwright() as playwright_sync:
         browser = getattr(playwright_sync, browser_name).launch()
         try:
-            if browser_name == "chromium":
-                session = browser.new_browser_cdp_session()
-                user_agent = session.send("Browser.getVersion")["userAgent"]
-                session.detach()
-                assert isinstance(user_agent, str)
-                expected = platform_suffix_from_chromium_user_agent(user_agent)
-            else:
-                page = browser.new_page()
-                navigator_platform = page.evaluate("() => navigator.platform")
-                user_agent = page.evaluate("() => navigator.userAgent")
-                page.close()
-                assert isinstance(navigator_platform, str)
-                assert isinstance(user_agent, str)
-                expected = platform_suffix_from_navigator_platform(navigator_platform)
+            page = browser.new_page()
+            navigator_platform = page.evaluate("() => navigator.platform")
+            user_agent = page.evaluate("() => navigator.userAgent")
+            page.close()
+            assert isinstance(navigator_platform, str)
+            assert isinstance(user_agent, str)
+            expected = platform_suffix_from_navigator_platform(navigator_platform)
 
-                # WebKit's user agent says Macintosh on Linux. The suffix follows the page.
-                if "Macintosh" in user_agent and navigator_platform.startswith("Linux"):
-                    assert expected == "linux"
+            # WebKit's user agent says Macintosh on Linux. The suffix follows the page.
+            if "Macintosh" in user_agent and navigator_platform.startswith("Linux"):
+                assert expected == "linux"
 
             suffix = browser_snapshot_platform(browser)
             assert browser_snapshot_platform(browser) == suffix
@@ -179,11 +129,11 @@ def test_connected_chromium_platform_ignores_host_platform(
         with sync_playwright() as playwright_sync:
             browser = playwright_sync.chromium.connect(endpoint)
             try:
-                session = browser.new_browser_cdp_session()
-                user_agent = session.send("Browser.getVersion")["userAgent"]
-                session.detach()
-                assert isinstance(user_agent, str)
-                expected = platform_suffix_from_chromium_user_agent(user_agent)
+                page = browser.new_page()
+                navigator_platform = page.evaluate("() => navigator.platform")
+                page.close()
+                assert isinstance(navigator_platform, str)
+                expected = platform_suffix_from_navigator_platform(navigator_platform)
                 suffix = browser_snapshot_platform(browser)
             finally:
                 browser.close()
