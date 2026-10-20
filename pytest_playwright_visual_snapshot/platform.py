@@ -1,16 +1,18 @@
 """Choose the OS suffix stored in a snapshot filename.
 
-Baselines are named `test[browser][os].png`. `os` is `linux`, `darwin`, or `win32`, the same strings `sys.platform` produces, so a browser launched on the pytest host still matches files that already exist.
+Baselines are named `test[browser][os].png`. The suffix uses `linux`, `darwin`, and `win32`, the same values existing baselines already have from `sys.platform`. Changing that vocabulary would rename every baseline.
 
-The pixels come from the connected browser. A Mac running pytest against Chromium in a Linux container writes `[linux]`, the suffix CI writes for that browser. `sys.platform` on the pytest process would write `[darwin]` and miss those files.
+The requirement is the OS of the machine that rendered the pixels, not the OS running pytest. A Mac running pytest against Chromium in a Linux container must write `[linux]`, matching CI. Reading `sys.platform` on the pytest process would write `[darwin]` and miss those files.
 
-Chromium reads the browser-process user agent through CDP `Browser.getVersion`. That command follows `browser_type.connect()` and `connect_over_cdp`, and it does not open a page.
+Every browser is asked the same way: a temporary page reads `navigator.platform` in that browser. This deliberately trades one blank page per browser for a single detection path. The result is cached, and visual tests already create pages. In headed mode, that page can be briefly visible.
 
-Firefox and WebKit read `navigator.platform` in that browser. WebKit's user agent string says Macintosh on Linux, which would store those snapshots under `[darwin]`.
+Chromium's browser-process user agent was not used for every browser because WebKit reports Macintosh in its user agent on Linux. It would store Linux WebKit snapshots under `[darwin]`.
 
-`PWDEBUG` runs the inspector against a browser on the pytest host and pauses the first page call, so the suffix is the host OS. Use the Docker browser without `PWDEBUG`.
+Reading Chromium through CDP `Browser.getVersion` was also set aside. It avoids the temporary page and follows a remote Chromium connection, but it only works for Chromium and needs a second transport and a second user-agent mapping. One page probe covers local and remote Chromium, Firefox, and WebKit.
 
-A test that never requests a browser has no connection to read. Disabled snapshots skip the read. Both keep the pytest host OS.
+An unknown reported platform raises instead of falling back to the pytest host. A guessed suffix would silently create or miss baselines under the wrong OS name.
+
+`PWDEBUG` is a host-browser workflow. Its inspector pauses the first page call, so this module returns the pytest host OS before opening a probe page. Docker browsers are used without `PWDEBUG`.
 """
 
 import logging
@@ -19,11 +21,15 @@ import sys
 from weakref import WeakKeyDictionary
 
 from playwright.sync_api import Browser
-from pytest import FixtureRequest
 
 logger = logging.getLogger(__name__)
 
-_BROWSER_FIXTURE_NAMES = ("browser", "context", "page", "new_context")
+_PLATFORM_SUFFIXES = (
+    ("Win", "win32"),
+    ("Mac", "darwin"),
+    ("Linux", "linux"),
+    ("CrOS", "linux"),
+)
 _snapshot_platform_by_browser: WeakKeyDictionary[Browser, str] = WeakKeyDictionary()
 
 
@@ -33,55 +39,16 @@ def _playwright_inspector_enabled() -> bool:
     return mode not in ("", "0", "false", "console")
 
 
-def platform_suffix_from_chromium_user_agent(user_agent: str) -> str:
-    """Map a Chromium user agent onto the snapshot OS suffix.
-
-    `linux`, `darwin`, and `win32` are the `sys.platform` values existing
-    baselines already use. Chrome OS reports `CrOS` and uses `linux`.
-    """
-    if "Windows" in user_agent:
-        return "win32"
-
-    if "Macintosh" in user_agent or "Mac OS" in user_agent:
-        return "darwin"
-
-    if "Linux" in user_agent or "CrOS" in user_agent:
-        return "linux"
-
-    raise AssertionError(f"unknown chromium user agent {user_agent}")
-
-
 def platform_suffix_from_navigator_platform(navigator_platform: str) -> str:
     """Map `navigator.platform` onto the snapshot OS suffix."""
-    if navigator_platform.startswith("Linux"):
-        return "linux"
-
-    if navigator_platform.startswith("Mac"):
-        return "darwin"
-
-    if navigator_platform.startswith("Win"):
-        return "win32"
+    for marker, suffix in _PLATFORM_SUFFIXES:
+        if marker in navigator_platform:
+            return suffix
 
     raise AssertionError(f"unknown browser platform {navigator_platform}")
 
 
-def _chromium_snapshot_platform(browser: Browser) -> str:
-    # Browser.getVersion is the browser process, so connect() and connect_over_cdp
-    # report the machine running Chrome rather than the pytest host.
-    session = browser.new_browser_cdp_session()
-    try:
-        version = session.send("Browser.getVersion")
-    finally:
-        session.detach()
-
-    user_agent = version["userAgent"]
-    assert isinstance(user_agent, str)
-
-    return platform_suffix_from_chromium_user_agent(user_agent)
-
-
 def _navigator_snapshot_platform(browser: Browser) -> str:
-    # WebKit's user agent says Macintosh on Linux. The page platform does not.
     page = browser.new_page()
     try:
         navigator_platform = page.evaluate("() => navigator.platform")
@@ -94,47 +61,19 @@ def _navigator_snapshot_platform(browser: Browser) -> str:
 
 
 def browser_snapshot_platform(browser: Browser) -> str:
-    """OS suffix for the browser that renders snapshots.
+    """OS suffix for the browser that renders snapshots."""
+    # PWDEBUG is supported for a browser on the pytest host. The inspector
+    # pauses the first page call, so the suffix is the host OS.
+    if _playwright_inspector_enabled():
+        return sys.platform
 
-    Chromium is read over CDP, including a remote Playwright or DevTools
-    connection. Firefox and WebKit read `navigator.platform` in that browser.
-    `PWDEBUG` uses the pytest host OS. That mode is for a browser on the host.
-    """
     cached = _snapshot_platform_by_browser.get(browser)
     if cached is not None:
         return cached
 
-    # PWDEBUG is supported for a browser on the pytest host. The inspector
-    # pauses the first page call, so the suffix is the host OS.
-    if _playwright_inspector_enabled():
-        platform = sys.platform
-    elif browser.browser_type.name == "chromium":
-        platform = _chromium_snapshot_platform(browser)
-    else:
-        platform = _navigator_snapshot_platform(browser)
+    platform = _navigator_snapshot_platform(browser)
 
     _snapshot_platform_by_browser[browser] = platform
     logger.debug(f"Snapshot browser platform: {platform}")
 
     return platform
-
-
-def _test_requests_browser(request: FixtureRequest) -> bool:
-    return any(name in request.fixturenames for name in _BROWSER_FIXTURE_NAMES)
-
-
-def snapshot_platform_for_test(
-    request: FixtureRequest, *, snapshots_disabled: bool
-) -> str:
-    """Browser OS when this test drives a browser, otherwise the pytest host.
-
-    Byte-only snapshots never open a browser, so there is no remote OS to read.
-    Disabled snapshots skip the probe.
-    """
-    if snapshots_disabled or not _test_requests_browser(request):
-        return sys.platform
-
-    browser = request.getfixturevalue("browser")
-    assert isinstance(browser, Browser)
-
-    return browser_snapshot_platform(browser)

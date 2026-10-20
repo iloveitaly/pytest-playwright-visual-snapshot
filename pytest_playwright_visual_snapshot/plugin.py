@@ -1,13 +1,14 @@
 import logging
 import os
 import shutil
+import sys
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
 
 import pytest
 from PIL import Image
-from playwright.sync_api import Locator
+from playwright.sync_api import Browser, Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 from pytest_plugin_utils import (
@@ -19,7 +20,7 @@ from pytest_plugin_utils import (
 
 from .matchers import MatchResult, get_matcher
 from .matchers.odiff_matcher import ODiffMatcher
-from .platform import snapshot_platform_for_test
+from .platform import browser_snapshot_platform
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -42,6 +43,7 @@ _ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     }
 )
 _ASSERTION_KWARGS = frozenset(_ASSERTION_KWARG_DEFAULTS)
+_BROWSER_FIXTURE_NAMES = ("browser", "context", "page", "new_context")
 
 T = TypeVar("T")
 
@@ -87,6 +89,25 @@ def _snapshots_disabled(pytestconfig: Config) -> bool:
             type_hint=bool,
         )
     )
+
+
+def _snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -> str:
+    """Browser OS when this test drives a browser, otherwise the pytest host.
+
+    Disabled snapshots do not need a suffix. Byte-only snapshots have no
+    connected browser to inspect, and resolving `browser` here would launch
+    one only to choose a filename.
+    """
+    test_requests_browser = any(
+        name in request.fixturenames for name in _BROWSER_FIXTURE_NAMES
+    )
+    if _snapshots_disabled(pytestconfig) or not test_requests_browser:
+        return sys.platform
+
+    browser = request.getfixturevalue("browser")
+    assert isinstance(browser, Browser)
+
+    return browser_snapshot_platform(browser)
 
 
 def diff_is_within_allowance(
@@ -658,8 +679,5 @@ def assert_snapshot(
         pytestconfig=pytestconfig,
         request=request,
         failures=failures,
-        platform=snapshot_platform_for_test(
-            request,
-            snapshots_disabled=_snapshots_disabled(pytestconfig),
-        ),
+        platform=_snapshot_platform_for_test(pytestconfig, request),
     )
