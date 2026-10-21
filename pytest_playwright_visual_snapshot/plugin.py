@@ -20,7 +20,7 @@ from pytest_plugin_utils import (
 
 from .matchers import MatchResult, get_matcher
 from .matchers.odiff_matcher import ODiffMatcher
-from .platform import browser_snapshot_platform
+from .platform import snapshot_platform_key
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -91,13 +91,30 @@ def _snapshots_disabled(pytestconfig: Config) -> bool:
     )
 
 
-def _snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -> str:
-    """Browser OS when this test drives a browser, otherwise the pytest host.
+def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
+    configured_platform = get_pytest_option(
+        NAMESPACE,
+        pytestconfig,
+        "playwright_visual_snapshot_platform",
+        type_hint=str,
+    )
+    assert configured_platform is None or isinstance(configured_platform, str)
 
-    Disabled snapshots do not need a suffix. Byte-only snapshots have no
-    connected browser to inspect, and resolving `browser` here would launch
-    one only to choose a filename.
+    return configured_platform or None
+
+
+def _snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -> str:
+    """Platform key for this test's snapshot filename.
+
+    A configured key wins without resolving the browser. Otherwise, only a
+    test that already drives a browser resolves it: byte-only snapshots have
+    no connected browser to classify, and resolving `browser` here would
+    launch one only to choose a filename. Disabled snapshots skip that work.
     """
+    configured_platform = _configured_snapshot_platform(pytestconfig)
+    if configured_platform:
+        return configured_platform
+
     test_requests_browser = any(
         name in request.fixturenames for name in _BROWSER_FIXTURE_NAMES
     )
@@ -107,7 +124,7 @@ def _snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -
     browser = request.getfixturevalue("browser")
     assert isinstance(browser, Browser)
 
-    return browser_snapshot_platform(browser)
+    return snapshot_platform_key(browser, configured_platform)
 
 
 def diff_is_within_allowance(
@@ -163,6 +180,15 @@ def pytest_addoption(parser: Parser) -> None:
         help="Path where snapshot failures will be stored",
         available="ini",
         type_hint=Path,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        "playwright_visual_snapshot_platform",
+        default=None,
+        help="Platform key used in snapshot filenames, overriding automatic detection",
+        available="all",
+        type_hint=str,
     )
 
     set_pytest_option(
