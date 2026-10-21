@@ -1,79 +1,40 @@
-"""Choose the OS suffix stored in a snapshot filename.
+"""Choose the platform key stored in a snapshot filename.
 
-Baselines are named `test[browser][os].png`. The suffix uses `linux`, `darwin`, and `win32`, the same values existing baselines already have from `sys.platform`. Changing that vocabulary would rename every baseline.
+Baselines are named `test[browser][platform].png`.
 
-The requirement is the OS of the machine that rendered the pixels, not the OS running pytest. A Mac running pytest against Chromium in a Linux container must write `[linux]`, matching CI. Reading `sys.platform` on the pytest process would write `[darwin]` and miss those files.
+For a browser launched by the pytest process, the automatic key is `sys.platform` on the pytest host. This keeps the behavior and baseline names that existed before remote-browser support was considered.
 
-Every browser is asked the same way: a temporary page reads `navigator.platform` in that browser. This deliberately trades one blank page per browser for a single detection path. The result is cached, and visual tests already create pages. In headed mode, that page can be briefly visible.
+For a browser obtained through Playwright's WebSocket connection, the pixels may be rendered by another machine. Playwright's public `Browser` object reports the browser name and version, but not the operating system of the WebSocket server. Instead of probing the browser to recover that OS, the automatic key is `websocket`.
 
-Chromium's browser-process user agent was not used for every browser because WebKit reports Macintosh in its user agent on Linux. It would store Linux WebKit snapshots under `[darwin]`.
+That is a deliberate grouping decision, not a claim that every WebSocket browser runs the same OS. All WebSocket connections share one baseline key unless the user supplies a more specific key. Different rendering environments behind WebSocket connections should use different configured keys when their snapshots must be kept separate.
 
-Reading Chromium through CDP `Browser.getVersion` was also set aside. It avoids the temporary page and follows a remote Chromium connection, but it only works for Chromium and needs a second transport and a second user-agent mapping. One page probe covers local and remote Chromium, Firefox, and WebKit.
+A configured key overrides both automatic cases. This lets a project name the actual rendering environment, such as `linux`, `docker-linux`, or another stable environment name, without depending on how pytest connected to the browser.
 
-An unknown reported platform raises instead of falling back to the pytest host. A guessed suffix would silently create or miss baselines under the wrong OS name.
+No browser page, CDP session, or other probe is used. This removes the temporary-page cost and the `PWDEBUG` special case from platform selection. `PWDEBUG` remains a host-browser debugging workflow, but it no longer changes how the platform key is chosen.
 
-`PWDEBUG` is a host-browser workflow. Its inspector pauses the first page call, so this module returns the pytest host OS before opening a probe page. Docker browsers are used without `PWDEBUG`.
+Detection uses Playwright's remote-connection marker. `BrowserType.connect()` creates a child connection and marks it remote, while a locally launched browser uses the local connection. Playwright's public sync `Browser` API does not expose that transport distinction.
 """
 
-import logging
-import os
 import sys
-from weakref import WeakKeyDictionary
 
 from playwright.sync_api import Browser
 
-logger = logging.getLogger(__name__)
-
-_PLATFORM_SUFFIXES = (
-    ("Win", "win32"),
-    ("Mac", "darwin"),
-    ("Linux", "linux"),
-    ("CrOS", "linux"),
-)
-_snapshot_platform_by_browser: WeakKeyDictionary[Browser, str] = WeakKeyDictionary()
+WEBSOCKET_PLATFORM_KEY = "websocket"
 
 
-def _playwright_inspector_enabled() -> bool:
-    # PWDEBUG=1 pauses the first page call. console logging does not.
-    mode = os.environ.get("PWDEBUG", "")
-    return mode not in ("", "0", "false", "console")
+def is_websocket_browser(browser: Browser) -> bool:
+    """Whether this browser came from `BrowserType.connect()`."""
+    return browser._impl_obj._connection.is_remote
 
 
-def platform_suffix_from_navigator_platform(navigator_platform: str) -> str:
-    """Map `navigator.platform` onto the snapshot OS suffix."""
-    for marker, suffix in _PLATFORM_SUFFIXES:
-        if marker in navigator_platform:
-            return suffix
+def snapshot_platform_key(
+    browser: Browser | None, configured_platform: str | None
+) -> str:
+    """Configured key, then `websocket`, then the pytest host platform."""
+    if configured_platform:
+        return configured_platform
 
-    raise AssertionError(f"unknown browser platform {navigator_platform}")
+    if browser is not None and is_websocket_browser(browser):
+        return WEBSOCKET_PLATFORM_KEY
 
-
-def _navigator_snapshot_platform(browser: Browser) -> str:
-    page = browser.new_page()
-    try:
-        navigator_platform = page.evaluate("() => navigator.platform")
-    finally:
-        page.close()
-
-    assert isinstance(navigator_platform, str)
-
-    return platform_suffix_from_navigator_platform(navigator_platform)
-
-
-def browser_snapshot_platform(browser: Browser) -> str:
-    """OS suffix for the browser that renders snapshots."""
-    # PWDEBUG is supported for a browser on the pytest host. The inspector
-    # pauses the first page call, so the suffix is the host OS.
-    if _playwright_inspector_enabled():
-        return sys.platform
-
-    cached = _snapshot_platform_by_browser.get(browser)
-    if cached is not None:
-        return cached
-
-    platform = _navigator_snapshot_platform(browser)
-
-    _snapshot_platform_by_browser[browser] = platform
-    logger.debug(f"Snapshot browser platform: {platform}")
-
-    return platform
+    return sys.platform
