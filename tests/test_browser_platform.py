@@ -7,46 +7,24 @@ from pathlib import Path
 
 import playwright
 import pytest
-from playwright.sync_api import sync_playwright
 
-from pytest_playwright_visual_snapshot.platform import (
-    is_websocket_browser,
-    snapshot_platform_key,
-)
+from pytest_playwright_visual_snapshot.platform import snapshot_platform_key
 
 from tests.conftest import get_snapshots_dir
 
 
-class _Connection:
-    def __init__(self, is_remote: bool) -> None:
-        self.is_remote = is_remote
-
-
-class _BrowserImpl:
-    def __init__(self, is_remote: bool) -> None:
-        self._connection = _Connection(is_remote)
-
-
-class _Browser:
-    def __init__(self, is_remote: bool = False) -> None:
-        self._impl_obj = _BrowserImpl(is_remote)
-
-
-def test_snapshot_platform_key_uses_host_for_local_browser(
+def test_snapshot_platform_key_uses_host_without_websocket(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sys, "platform", "darwin")
 
-    assert snapshot_platform_key(_Browser(), None) == "darwin"
-    assert snapshot_platform_key(None, None) == "darwin"
+    assert snapshot_platform_key(None, is_websocket_connection=False) == "darwin"
 
 
-def test_snapshot_platform_key_uses_websocket_for_remote_browser(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_snapshot_platform_key_uses_websocket(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "platform", "darwin")
 
-    assert snapshot_platform_key(_Browser(is_remote=True), None) == "websocket"
+    assert snapshot_platform_key(None, is_websocket_connection=True) == "websocket"
 
 
 def test_snapshot_platform_key_configured_value_wins(
@@ -54,27 +32,14 @@ def test_snapshot_platform_key_configured_value_wins(
 ) -> None:
     monkeypatch.setattr(sys, "platform", "darwin")
 
-    assert snapshot_platform_key(_Browser(), "docker-linux") == "docker-linux"
     assert (
-        snapshot_platform_key(_Browser(is_remote=True), "docker-linux")
+        snapshot_platform_key("docker-linux", is_websocket_connection=False)
         == "docker-linux"
     )
-    assert snapshot_platform_key(None, "docker-linux") == "docker-linux"
-
-
-@pytest.mark.parametrize("browser_name", ["chromium", "firefox", "webkit"])
-def test_live_browser_is_not_websocket(
-    browser_name: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(sys, "platform", "host-platform")
-
-    with sync_playwright() as playwright_sync:
-        browser = getattr(playwright_sync, browser_name).launch()
-        try:
-            assert not is_websocket_browser(browser)
-            assert snapshot_platform_key(browser, None) == "host-platform"
-        finally:
-            browser.close()
+    assert (
+        snapshot_platform_key("docker-linux", is_websocket_connection=True)
+        == "docker-linux"
+    )
 
 
 def _start_chromium_server() -> subprocess.Popen[str]:
@@ -101,32 +66,6 @@ def _stop_process_group(process: subprocess.Popen[str]) -> None:
         os.killpg(process.pid, signal.SIGKILL)
 
     process.wait()
-
-
-def test_connected_chromium_uses_websocket_platform_key(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(sys, "platform", "host-platform")
-    process = _start_chromium_server()
-    assert process.stdout is not None
-    ready, _, _ = select.select([process.stdout], [], [], 30)
-    assert ready, "playwright server did not print an endpoint"
-    endpoint = process.stdout.readline().strip()
-
-    try:
-        assert endpoint.startswith("ws://"), endpoint
-
-        with sync_playwright() as playwright_sync:
-            browser = playwright_sync.chromium.connect(endpoint)
-            try:
-                assert is_websocket_browser(browser)
-                suffix = snapshot_platform_key(browser, None)
-            finally:
-                browser.close()
-    finally:
-        _stop_process_group(process)
-
-    assert suffix == "websocket"
 
 
 @pytest.mark.parametrize("browser_name", ["chromium", "firefox"])
@@ -179,6 +118,38 @@ def test_snapshot_filename_uses_configured_platform(testdir: pytest.Testdir) -> 
     assert "[docker-linux]" in snapshots[0].name
 
 
+def test_byte_snapshot_does_not_resolve_browser(testdir: pytest.Testdir) -> None:
+    testdir.makeconftest(
+        """
+        import pytest
+
+        @pytest.fixture(scope="session")
+        def browser():
+            raise AssertionError("browser must not be resolved for a filename")
+        """
+    )
+    testdir.makepyfile(
+        """
+        from io import BytesIO
+
+        from PIL import Image
+
+        def test_snapshot(assert_snapshot):
+            image = Image.new("RGB", (10, 10), color="red")
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            assert_snapshot(buffer.getvalue())
+        """
+    )
+
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1, errors=1)
+
+    snapshots = list(get_snapshots_dir(testdir).rglob("*.png"))
+    assert len(snapshots) == 1, snapshots
+    assert f"[{sys.platform}]" in snapshots[0].name
+
+
 def test_snapshot_filename_uses_websocket_platform(testdir: pytest.Testdir) -> None:
     process = _start_chromium_server()
     assert process.stdout is not None
@@ -193,10 +164,8 @@ def test_snapshot_filename_uses_websocket_platform(testdir: pytest.Testdir) -> N
             import pytest
 
             @pytest.fixture(scope="session")
-            def browser(browser_type):
-                browser = browser_type.connect({endpoint!r})
-                yield browser
-                browser.close()
+            def connect_options():
+                return {{"endpoint": {endpoint!r}}}
             """
         )
         testdir.makepyfile(
