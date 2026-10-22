@@ -135,3 +135,17 @@ dmypy.json
 
 # i like having temporary files specified locally vs globally
 tmp/
+
+# START AI INSTRUCTION IGNORES
+/.cursor/commands/standalone-python-scripts.md
+/.cursor/commands/write-or-update-readme.md
+/.cursor/rules/general.mdc
+/.cursor/rules/python.mdc
+/.github/copilot-instructions.md
+/.github/instructions/python.instructions.md
+/.github/prompts/standalone-python-scripts.prompt.md
+/.github/prompts/write-or-update-readme.prompt.md
+/.opencode/commands/standalone-python-scripts.md
+/.opencode/commands/write-or-update-readme.md
+/AGENTS.md
+# END AI INSTRUCTION IGNORES
