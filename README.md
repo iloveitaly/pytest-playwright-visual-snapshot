@@ -188,7 +188,7 @@ A later call can still override a default: `assert_snapshot(page, pixel_percenta
 The platform part of a snapshot filename identifies the rendering environment:
 
 - A browser launched by pytest uses `sys.platform` on the pytest host.
-- A browser connected with `browser_type.connect()` uses `websocket`.
+- A browser connected through pytest-playwright's `connect_options` fixture uses `websocket`.
 - A configured key overrides both.
 
 Set the key in `pytest.ini`:
@@ -212,6 +212,8 @@ def pytest_configure(config: Config):
 ```
 
 Use a filename-safe key. All WebSocket connections share the automatic `websocket` key. Give different WebSocket rendering environments different configured keys when their baselines must be kept separate.
+
+Automatic WebSocket detection reads pytest-playwright's `connect_options`, so `assert_snapshot` never resolves the `browser` fixture only to choose a filename. A custom `browser` fixture that calls `browser_type.connect()` itself is not visible to that detection. Configure the platform key explicitly for that setup.
 
 ### Disabling Visual Snapshots Locally
 
@@ -250,7 +252,7 @@ services:
     command: npx -y playwright@1.55.0 run-server --port 3000 --host 0.0.0.0
 ```
 
-`pytest-playwright` launches a local browser unless you override the `browser` fixture in `conftest.py`:
+`pytest-playwright` launches a local browser unless you provide WebSocket connection options in `conftest.py`:
 
 ```python
 import os
@@ -259,10 +261,8 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def browser(browser_type):
-    browser = browser_type.connect(os.environ["PLAYWRIGHT_WS_ENDPOINT"])
-    yield browser
-    browser.close()
+def connect_options():
+    return {"endpoint": os.environ["PLAYWRIGHT_WS_ENDPOINT"]}
 ```
 
 ```bash

@@ -1,14 +1,13 @@
 import logging
 import os
 import shutil
-import sys
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
 
 import pytest
 from PIL import Image
-from playwright.sync_api import Browser, Locator
+from playwright.sync_api import Locator
 from playwright.sync_api import Page as SyncPage
 from pytest import Config, FixtureRequest, Parser
 from pytest_plugin_utils import (
@@ -43,7 +42,6 @@ _ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     }
 )
 _ASSERTION_KWARGS = frozenset(_ASSERTION_KWARG_DEFAULTS)
-_BROWSER_FIXTURE_NAMES = ("browser", "context", "page", "new_context")
 
 T = TypeVar("T")
 
@@ -103,28 +101,20 @@ def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
     return configured_platform or None
 
 
-def _snapshot_platform_for_test(pytestconfig: Config, request: FixtureRequest) -> str:
+def _snapshot_platform_for_test(
+    pytestconfig: Config, connect_options: dict[str, Any] | None
+) -> str:
     """Platform key for this test's snapshot filename.
 
-    A configured key wins without resolving the browser. Otherwise, only a
-    test that already drives a browser resolves it: byte-only snapshots have
-    no connected browser to classify, and resolving `browser` here would
-    launch one only to choose a filename. Disabled snapshots skip that work.
+    This never resolves the Playwright `browser` fixture. Doing so from
+    `assert_snapshot` could launch a browser only to choose a filename.
+    pytest-playwright's `connect_options` carries the WebSocket decision
+    without starting a browser.
     """
-    configured_platform = _configured_snapshot_platform(pytestconfig)
-    if configured_platform:
-        return configured_platform
-
-    test_requests_browser = any(
-        name in request.fixturenames for name in _BROWSER_FIXTURE_NAMES
+    return snapshot_platform_key(
+        _configured_snapshot_platform(pytestconfig),
+        is_websocket_connection=bool(connect_options),
     )
-    if _snapshots_disabled(pytestconfig) or not test_requests_browser:
-        return sys.platform
-
-    browser = request.getfixturevalue("browser")
-    assert isinstance(browser, Browser)
-
-    return snapshot_platform_key(browser, configured_platform)
 
 
 def diff_is_within_allowance(
@@ -689,7 +679,10 @@ def require_odiff_binary(pytestconfig: Config) -> None:
 
 @pytest.fixture
 def assert_snapshot(
-    pytestconfig: Config, request: FixtureRequest, browser_name: str
+    pytestconfig: Config,
+    request: FixtureRequest,
+    browser_name: str,
+    connect_options: dict[str, Any] | None,
 ) -> AssertSnapshot:
     # Collection to store failures
     failures = []
@@ -705,5 +698,5 @@ def assert_snapshot(
         pytestconfig=pytestconfig,
         request=request,
         failures=failures,
-        platform=_snapshot_platform_for_test(pytestconfig, request),
+        platform=_snapshot_platform_for_test(pytestconfig, connect_options),
     )
