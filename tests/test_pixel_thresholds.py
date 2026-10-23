@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from pytest_playwright_visual_snapshot.matchers.base import MatchResult
+from pytest_playwright_visual_snapshot.matchers.base import (
+    MatchResult,
+    percent_pixels_differing,
+)
 from pytest_playwright_visual_snapshot.matchers.odiff_matcher import ODiffMatcher
 from pytest_playwright_visual_snapshot.matchers.pixelmatch_matcher import (
     PixelmatchMatcher,
@@ -91,6 +94,26 @@ def test_diff_is_within_allowance():
             ),
             pixel_percentage_threshold=1,
             pixel_threshold=10,
+        )
+        is False
+    )
+
+
+def test_exact_percentage_stays_under_rounded_odiff_value():
+    exact = percent_pixels_differing(71, (1280, 720))
+    within_budget = MatchResult(matched=False, score=71, diff_percentage=exact)
+    rounded_by_odiff = MatchResult(matched=False, score=71, diff_percentage=0.01)
+
+    assert exact < 0.01
+    assert (
+        diff_is_within_allowance(
+            within_budget, pixel_percentage_threshold=0.01, pixel_threshold=None
+        )
+        is True
+    )
+    assert (
+        diff_is_within_allowance(
+            rounded_by_odiff, pixel_percentage_threshold=0.01, pixel_threshold=None
         )
         is False
     )
