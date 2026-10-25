@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 NAMESPACE = "pytest_playwright_visual_snapshot"
+SNAPSHOT_PLATFORM_OPTION = "playwright_visual_snapshot_platform"
 _ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     {
         "threshold": None,
@@ -93,7 +95,7 @@ def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
     configured_platform = get_pytest_option(
         NAMESPACE,
         pytestconfig,
-        "playwright_visual_snapshot_platform",
+        SNAPSHOT_PLATFORM_OPTION,
         type_hint=str,
     )
     assert configured_platform is None or isinstance(configured_platform, str)
@@ -102,15 +104,14 @@ def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
 
 
 def _snapshot_platform_for_test(
-    pytestconfig: Config, connect_options: dict[str, Any] | None
+    pytestconfig: Config, connect_options: Mapping[str, object] | None
 ) -> str:
-    """Platform key for this test's snapshot filename.
+    """Snapshot filename platform key.
 
-    This never resolves the Playwright `browser` fixture. Doing so from
-    `assert_snapshot` could launch a browser only to choose a filename.
-    pytest-playwright's `connect_options` carries the WebSocket decision
-    without starting a browser.
+    `connect_options` is how pytest-playwright chooses `BrowserType.connect()`.
+    Reading it does not launch a browser.
     """
+
     return snapshot_platform_key(
         _configured_snapshot_platform(pytestconfig),
         is_websocket_connection=bool(connect_options),
@@ -174,7 +175,7 @@ def pytest_addoption(parser: Parser) -> None:
 
     set_pytest_option(
         NAMESPACE,
-        "playwright_visual_snapshot_platform",
+        SNAPSHOT_PLATFORM_OPTION,
         default=None,
         help="Platform key used in snapshot filenames, overriding automatic detection",
         available="all",
@@ -682,7 +683,7 @@ def assert_snapshot(
     pytestconfig: Config,
     request: FixtureRequest,
     browser_name: str,
-    connect_options: dict[str, Any] | None,
+    connect_options: Mapping[str, object] | None,
 ) -> AssertSnapshot:
     # Collection to store failures
     failures = []

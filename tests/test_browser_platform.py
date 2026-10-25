@@ -10,7 +10,10 @@ from pathlib import Path
 import playwright
 import pytest
 
-from pytest_playwright_visual_snapshot.platform import snapshot_platform_key
+from pytest_playwright_visual_snapshot.platform import (
+    WEBSOCKET_PLATFORM_KEY,
+    snapshot_platform_key,
+)
 
 from tests.conftest import get_snapshots_dir
 
@@ -19,7 +22,7 @@ from tests.conftest import get_snapshots_dir
     ("configured_platform", "is_websocket_connection", "expected"),
     [
         (None, False, "host-platform"),
-        (None, True, "websocket"),
+        (None, True, WEBSOCKET_PLATFORM_KEY),
         ("docker-linux", False, "docker-linux"),
         ("docker-linux", True, "docker-linux"),
     ],
@@ -152,4 +155,4 @@ def test_snapshot_filename_uses_websocket_platform(testdir: pytest.Testdir) -> N
 
         snapshot = _create_page_snapshot(testdir, "--browser", "chromium")
 
-    assert "[websocket]" in snapshot.name
+    assert f"[{WEBSOCKET_PLATFORM_KEY}]" in snapshot.name
