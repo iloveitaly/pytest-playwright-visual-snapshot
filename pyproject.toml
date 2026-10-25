@@ -24,10 +24,6 @@ urls = { "Repository" = "https://github.com/iloveitaly/pytest-playwright-visual-
 [project.entry-points.pytest11]
 playwright_visual_snapshot = "pytest_playwright_visual_snapshot.plugin"
 
-# https://github.com/astral-sh/uv/issues/5200
-[tool.uv]
-package = true
-
 [tool.pytest.ini_options]
 addopts = "-p no:playwright --runpytest subprocess -vv --cov --cov-report=term-missing --cov-report=html:tmp/htmlcov"
 
