@@ -1,4 +1,5 @@
-"""Platform key for `test[browser][platform].png` snapshot names.
+"""
+Platform key for `test[browser][platform].png` snapshot names.
 
 A locally launched browser uses `sys.platform` on the pytest host, so the
 filename stays tied to the machine that rendered the pixels.

@@ -95,10 +95,18 @@ def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
 def _snapshot_platform_for_test(
     pytestconfig: Config, connect_options: Mapping[str, object] | None
 ) -> str:
-    """Snapshot filename platform key.
+    """
+    Snapshot filename platform key.
 
-    `connect_options` is how pytest-playwright chooses `BrowserType.connect()`.
-    Reading it does not launch a browser.
+    Args:
+        pytestconfig: Pytest config. `playwright_visual_snapshot_platform`
+            overrides the automatic key.
+        connect_options: pytest-playwright connection options. A non-empty
+            value means `BrowserType.connect()` will be used. Reading this
+            fixture does not launch a browser.
+
+    Returns:
+        The configured key, `websocket`, or `sys.platform`.
     """
 
     return snapshot_platform_key(
