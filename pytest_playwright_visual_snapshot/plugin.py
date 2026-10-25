@@ -80,17 +80,6 @@ def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
 
 
-def _snapshots_disabled(pytestconfig: Config) -> bool:
-    return bool(
-        get_pytest_option(
-            NAMESPACE,
-            pytestconfig,
-            "playwright_visual_disable_snapshots",
-            type_hint=bool,
-        )
-    )
-
-
 def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
     configured_platform = get_pytest_option(
         NAMESPACE,
