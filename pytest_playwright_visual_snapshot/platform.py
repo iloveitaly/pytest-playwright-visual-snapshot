@@ -23,6 +23,7 @@ not set `connect_options`. Configure the platform key for that setup.
 import sys
 
 WEBSOCKET_PLATFORM_KEY = "websocket"
+"shared snapshot key because playwright does not report the websocket server os"
 
 
 def snapshot_platform_key(
