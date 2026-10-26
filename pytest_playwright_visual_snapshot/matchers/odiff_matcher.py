@@ -7,6 +7,8 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from .base import MatchResult
 
 
@@ -18,6 +20,15 @@ _ODIFF_INSTALL_INSTRUCTIONS = (
     "https://github.com/iloveitaly/pytest-playwright-visual-snapshot"
     "#odiff-antialiasing-and-diff-allowance"
 )
+
+
+def _pixel_diff_percentage(result: dict[str, Any]) -> float:
+    # Older odiff builds only send diffPercentage, rounded to two decimals.
+    exact = result.get("diffPercentageExact")
+    if exact is not None:
+        return float(exact)
+
+    return float(result["diffPercentage"])
 
 
 class _ODiffServer:
@@ -192,8 +203,6 @@ class ODiffMatcher:
 
         reason = result.get("reason")
         if reason == "layout-diff":
-            from PIL import Image
-
             return MatchResult(
                 matched=False,
                 size_mismatch=True,
@@ -203,8 +212,8 @@ class ODiffMatcher:
         if reason == "pixel-diff":
             return MatchResult(
                 matched=False,
-                score=float(result.get("diffCount", 0)),
-                diff_percentage=float(result["diffPercentage"]),
+                score=float(result["diffCount"]),
+                diff_percentage=_pixel_diff_percentage(result),
             )
 
         raise RuntimeError(f"odiff returned unexpected result: {result!r}")
