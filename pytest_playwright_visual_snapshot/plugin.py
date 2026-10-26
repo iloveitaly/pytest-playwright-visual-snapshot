@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-import sys
+from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
@@ -20,6 +20,7 @@ from pytest_plugin_utils import (
 
 from .matchers import MatchResult, get_matcher
 from .matchers.odiff_matcher import ODiffMatcher
+from .platform import snapshot_platform_key
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_MESSAGE_PREFIX = "[playwright-visual-snapshot]"
 NAMESPACE = "pytest_playwright_visual_snapshot"
+SNAPSHOT_PLATFORM_OPTION = "playwright_visual_snapshot_platform"
 _ASSERTION_KWARG_DEFAULTS: MappingProxyType[str, Any] = MappingProxyType(
     {
         "threshold": None,
@@ -76,6 +78,41 @@ def _resolve_assertion_kwarg_precedence[T](
 
 def is_ci_environment() -> bool:
     return "GITHUB_ACTIONS" in os.environ
+
+
+def _configured_snapshot_platform(pytestconfig: Config) -> str | None:
+    configured_platform = get_pytest_option(
+        NAMESPACE,
+        pytestconfig,
+        SNAPSHOT_PLATFORM_OPTION,
+        type_hint=str,
+    )
+    assert configured_platform is None or isinstance(configured_platform, str)
+
+    return configured_platform or None
+
+
+def _snapshot_platform_for_test(
+    pytestconfig: Config, connect_options: Mapping[str, object] | None
+) -> str:
+    """
+    Snapshot filename platform key.
+
+    Args:
+        pytestconfig: Pytest config. `playwright_visual_snapshot_platform`
+            overrides the automatic key.
+        connect_options: pytest-playwright connection options. A non-empty
+            value means `BrowserType.connect()` will be used. Reading this
+            fixture does not launch a browser.
+
+    Returns:
+        The configured key, `websocket`, or `sys.platform`.
+    """
+
+    return snapshot_platform_key(
+        _configured_snapshot_platform(pytestconfig),
+        is_websocket_connection=bool(connect_options),
+    )
 
 
 def diff_is_within_allowance(
@@ -131,6 +168,15 @@ def pytest_addoption(parser: Parser) -> None:
         help="Path where snapshot failures will be stored",
         available="ini",
         type_hint=Path,
+    )
+
+    set_pytest_option(
+        NAMESPACE,
+        SNAPSHOT_PLATFORM_OPTION,
+        default=None,
+        help="Platform key used in snapshot filenames, overriding automatic detection",
+        available="all",
+        type_hint=str,
     )
 
     set_pytest_option(
@@ -297,6 +343,7 @@ class AssertSnapshot:
         pytestconfig: Config,
         request: FixtureRequest,
         failures: list[str],
+        platform: str,
     ) -> None:
         self._pytestconfig = pytestconfig
         self._request = request
@@ -305,7 +352,7 @@ class AssertSnapshot:
         self._test_name_without_params = test_name_without_parameters(
             test_function_name
         )
-        self._test_name = f"{test_function_name}[{sys.platform!s}]"
+        self._test_name = f"{test_function_name}[{platform}]"
 
         # Resolve base directories for artifacts
         root_dir = Path(pytestconfig.rootdir)  # type: ignore
@@ -630,7 +677,10 @@ def require_odiff_binary(pytestconfig: Config) -> None:
 
 @pytest.fixture
 def assert_snapshot(
-    pytestconfig: Config, request: FixtureRequest, browser_name: str
+    pytestconfig: Config,
+    request: FixtureRequest,
+    browser_name: str,
+    connect_options: Mapping[str, object] | None,
 ) -> AssertSnapshot:
     # Collection to store failures
     failures = []
@@ -646,4 +696,5 @@ def assert_snapshot(
         pytestconfig=pytestconfig,
         request=request,
         failures=failures,
+        platform=_snapshot_platform_for_test(pytestconfig, connect_options),
     )
