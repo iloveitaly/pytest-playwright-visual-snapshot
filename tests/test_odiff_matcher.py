@@ -86,6 +86,30 @@ def test_one_pixel_diff_percentage(tmp_path):
     assert result.diff_percentage == 1
 
 
+def test_diff_percentage_ignores_odiff_rounding(tmp_path):
+    # 71 / (1280 * 720) * 100 == 0.00770..., which odiff prints as 0.01.
+    size = (1280, 720)
+    changed_pixels = 71
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    _write_png(base, size=size, color=(255, 255, 255, 255))
+    img = Image.new("RGBA", size, (255, 255, 255, 255))
+    for index in range(changed_pixels):
+        img.putpixel((index, 0), (0, 0, 0, 255))
+    img.save(actual)
+
+    matcher = ODiffMatcher()
+    result = matcher.compare(base, actual, diff, threshold=0.1)
+    matcher._server.stop()
+
+    exact = changed_pixels / (size[0] * size[1]) * 100
+    assert result.matched is False
+    assert result.score == changed_pixels
+    assert result.diff_percentage == exact
+    assert result.diff_percentage < 0.01
+
+
 def test_antialiasing_ignores_edge_blend(tmp_path):
     base = tmp_path / "base.png"
     actual = tmp_path / "actual.png"
