@@ -3,7 +3,7 @@ from pathlib import Path
 from PIL import Image
 from pixelmatch.contrib.PIL import pixelmatch
 
-from .base import MatchResult
+from .base import MatchResult, percent_pixels_differing
 
 
 class PixelmatchMatcher:
@@ -43,8 +43,7 @@ class PixelmatchMatcher:
         if mismatch == 0:
             return MatchResult(matched=True, score=0.0, diff_percentage=0.0)
 
-        width, height = img_actual.size
-        diff_percentage = mismatch / (width * height) * 100
+        diff_percentage = percent_pixels_differing(mismatch, img_actual.size)
 
         img_diff.save(diff_output_path)
         return MatchResult(
