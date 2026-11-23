@@ -86,6 +86,82 @@ def test_one_pixel_diff_percentage(tmp_path):
     assert result.diff_percentage == 1
 
 
+def test_diff_percentage_matches_odiff_payload(tmp_path):
+    width, height = 1_280, 720
+    changed_pixels = 71
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    _write_png(base, size=(width, height), color=(255, 255, 255, 255))
+    img = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    for index in range(changed_pixels):
+        img.putpixel((index, 0), (0, 0, 0, 255))
+    img.save(actual)
+
+    matcher = ODiffMatcher()
+    server = matcher._ensure_server()
+    raw = server.compare(
+        base=base,
+        compare=actual,
+        output=diff,
+        options={"threshold": 0.1, "failOnLayoutDiff": True},
+    )
+    result = matcher.compare(base, actual, tmp_path / "diff-again.png", threshold=0.1)
+    matcher._server.stop()
+
+    expected = raw.get("diffPercentageExact", raw["diffPercentage"])
+    assert result.score == changed_pixels
+    assert result.diff_percentage == expected
+
+
+def test_prefers_diff_percentage_exact(tmp_path):
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    _write_png(base)
+    _write_png(actual)
+
+    server = unittest.mock.Mock()
+    server.compare.return_value = {
+        "match": False,
+        "reason": "pixel-diff",
+        "diffCount": 71,
+        "diffPercentage": 0.01,
+        "diffPercentageExact": 0.007703993055555556,
+    }
+    matcher = ODiffMatcher()
+    matcher._server = server
+
+    result = matcher.compare(base, actual, diff, threshold=0.1)
+
+    assert result.score == 71
+    assert result.diff_percentage == 0.007703993055555556
+    server.compare.assert_called_once()
+
+
+def test_falls_back_to_rounded_diff_percentage(tmp_path):
+    base = tmp_path / "base.png"
+    actual = tmp_path / "actual.png"
+    diff = tmp_path / "diff.png"
+    _write_png(base)
+    _write_png(actual)
+
+    server = unittest.mock.Mock()
+    server.compare.return_value = {
+        "match": False,
+        "reason": "pixel-diff",
+        "diffCount": 71,
+        "diffPercentage": 0.01,
+    }
+    matcher = ODiffMatcher()
+    matcher._server = server
+
+    result = matcher.compare(base, actual, diff, threshold=0.1)
+
+    assert result.score == 71
+    assert result.diff_percentage == 0.01
+
+
 def test_antialiasing_ignores_edge_blend(tmp_path):
     base = tmp_path / "base.png"
     actual = tmp_path / "actual.png"
