@@ -7,7 +7,9 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
 
-from .base import MatchResult
+from PIL import Image
+
+from .base import MatchResult, percent_pixels_differing
 
 
 class ODiffBinaryNotFoundError(RuntimeError):
@@ -192,8 +194,6 @@ class ODiffMatcher:
 
         reason = result.get("reason")
         if reason == "layout-diff":
-            from PIL import Image
-
             return MatchResult(
                 matched=False,
                 size_mismatch=True,
@@ -201,10 +201,17 @@ class ODiffMatcher:
                 actual_size=Image.open(actual_path).size,
             )
         if reason == "pixel-diff":
+            # odiff rounds diffPercentage to two decimal places.
+            diff_count = float(result.get("diffCount", 0))
+            with Image.open(actual_path) as actual_image:
+                diff_percentage = percent_pixels_differing(
+                    diff_count, actual_image.size
+                )
+
             return MatchResult(
                 matched=False,
-                score=float(result.get("diffCount", 0)),
-                diff_percentage=float(result["diffPercentage"]),
+                score=diff_count,
+                diff_percentage=diff_percentage,
             )
 
         raise RuntimeError(f"odiff returned unexpected result: {result!r}")

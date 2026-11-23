@@ -158,7 +158,7 @@ def pytest_configure(config: Config):
 Here are the options you can configure on the assertion call:
 
 - `threshold` is the per-pixel color distance, from `0` to `1`, for both matchers.
-- `pixel_percentage_threshold` is the percent of the image, on a 0-100 scale (odiff's `diffPercentage`). `0.01` treats a diff below 0.01% of pixels as a match.
+- `pixel_percentage_threshold` is the exact percent of differing pixels, on a 0-100 scale. `0.01` treats a diff below 0.01% of pixels as a match. odiff prints `diffPercentage` rounded to two decimals; the allowance uses the unrounded ratio.
 - `pixel_threshold` is an absolute cap on differing pixels. `1` allows a single differing pixel.
 - `antialiasing` applies only to the odiff matcher. It passes odiff's `antialiasing` option so antialiased pixels are ignored. pixelmatch already ignores those pixels.
 
